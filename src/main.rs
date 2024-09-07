@@ -331,16 +331,6 @@ impl OSVM {
                 self.stack.push(b + a);
                 self.pc += 1;
             }
-            OpcodeType::Adds => {
-                if self.stack.len() < 2 {
-                    return Error::StackUnderflow;
-                }
-                
-                let a = self.stack.pop().unwrap();
-                let b = self.stack.pop().unwrap();
-                self.stack.push(b + a);
-                self.pc += 1;
-            }
             OpcodeType::Subs => {
                 if self.stack.len() < 2 {
                     return Error::StackUnderflow;
