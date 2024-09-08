@@ -685,6 +685,10 @@ impl OSVM {
         println!("    r10: {}", self.r10);
         println!("    r11: {}", self.r11);
         println!("    r12: {}", self.r12);
+        println!("    r13: {}", self.r13);
+        println!("    r14: {}", self.r14);
+        println!("    r15: {}", self.r15);
+        println!("    r16: {}", self.r16);
         println!("    pc:  {}", self.pc);
         
         if self.stack.len() > 0 {
