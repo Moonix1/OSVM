@@ -535,11 +535,22 @@ impl OSVM {
         Error::None
     }
     
+    fn get_operands<'a>(self: &Self, tokens: Vec<&'a str>, len1: usize, len2: usize, line_num: &u64) -> Vec<&'a str> {
+        let mut operands: Vec<&str> = tokens[0].split(", ").collect();
+        if operands.len() < len1 || operands.len() > len2 {
+            eprintln!("[Error]: Invalid number of opcode arguments at line: {}", line_num);
+            exit(1);
+        }
+        
+        operands
+    }
+    
     fn translate_source(self: &mut Self, source: String) {
-        let lines: Vec<&str> = source.lines().filter(|line| !line.trim_start().starts_with(';')).collect();
-        let mut line_num = 1;
+        let lines: Vec<&str> = source.lines().collect();
+        let mut line_num = 0;
         for line in lines {
-            if line.is_empty() {
+            line_num += 1;
+            if line.is_empty() || line.starts_with(';') {
                 continue;
             }
             
@@ -552,11 +563,7 @@ impl OSVM {
                 match inst_name {
                     // Register opcodes
                     MOV => {
-                        let mut operands: Vec<&str> = tokens[0].split(", ").collect();
-                        if operands.len() < 2 || operands.len() > 2 {
-                            eprintln!("[Error]: Invalid number of arguments");
-                            continue;
-                        }
+                        let mut operands: Vec<&str> = self.get_operands(tokens.clone(), 2, 2, &line_num);
                         
                         if operands[1].starts_with("r") {
                             self.program.push(Opcode { op_type: OpcodeType::Mov, op_operand: None, op_regs: vec![operands[0].to_string(), operands[1].to_string()] });
@@ -567,59 +574,36 @@ impl OSVM {
                         }
                     }
                     SRG => {
-                        let mut operands: Vec<&str> = tokens[0].split(", ").collect();
-                        if operands.len() < 2 || operands.len() > 2 {
-                            eprintln!("[Error]: Invalid number of arguments");
-                            continue;
-                        }
+                        let mut operands: Vec<&str> = self.get_operands(tokens.clone(), 2, 2, &line_num);
                         
                         self.program.push(Opcode { op_type: OpcodeType::Srg, op_operand: None, op_regs: vec![operands[0].to_string(), operands[1].to_string()] });
                     }
                     
                     CLR => {
-                        if tokens.len() < 1 || tokens.len() > 1 {
-                            eprintln!("[Error]: Invalid number of arguments");
-                            continue;
-                        }
+                        let mut operands: Vec<&str> = self.get_operands(tokens.clone(), 1, 1, &line_num);
                         
                         self.program.push(Opcode { op_type: OpcodeType::Clr, op_operand: Some(0), op_regs: vec![tokens[0].to_string()] });
                     }
                     
-                    ADD => {
-                        let operands: Vec<&str> = tokens[0].split(", ").collect();
-                        if operands.len() < 3 || operands.len() > 3 {
-                            eprintln!("[Error]: Invalid number of arguments");
-                            continue;
-                        }
+                    ADD | SUB | MUL | DIV => {
+                        let mut operands: Vec<&str> = self.get_operands(tokens.clone(), 3, 3, &line_num);
                         
-                        self.program.push(Opcode { op_type: OpcodeType::Add, op_operand: Some(0), op_regs: vec![operands[0].to_string(), operands[1].to_string(), operands[2].to_string()] });
-                    }
-                    SUB => {
-                        let operands: Vec<&str> = tokens[0].split(", ").collect();
-                        if operands.len() < 3 || operands.len() > 3 {
-                            eprintln!("[Error]: Invalid number of arguments");
-                            continue;
+                        match inst_name {
+                            ADD => {
+                                self.program.push(Opcode { op_type: OpcodeType::Add, op_operand: Some(0), op_regs: vec![operands[0].to_string(), operands[1].to_string(), operands[2].to_string()] });
+                            }
+                            SUB => {
+                                self.program.push(Opcode { op_type: OpcodeType::Sub, op_operand: Some(0), op_regs: vec![operands[0].to_string(), operands[1].to_string(), operands[2].to_string()] });
+                            }
+                            MUL => {
+                                self.program.push(Opcode { op_type: OpcodeType::Mul, op_operand: Some(0), op_regs: vec![operands[0].to_string(), operands[1].to_string(), operands[2].to_string()] });
+                            }
+                            DIV => {
+                                self.program.push(Opcode { op_type: OpcodeType::Div, op_operand: Some(0), op_regs: vec![operands[0].to_string(), operands[1].to_string(), operands[2].to_string()] });
+                            }
+                    
+                            _ => {}
                         }
-                        
-                        self.program.push(Opcode { op_type: OpcodeType::Sub, op_operand: Some(0), op_regs: vec![operands[0].to_string(), operands[1].to_string(), operands[2].to_string()] });
-                    }
-                    MUL => {
-                        let operands: Vec<&str> = tokens[0].split(", ").collect();
-                        if operands.len() < 3 || operands.len() > 3 {
-                            eprintln!("[Error]: Invalid number of arguments");
-                            continue;
-                        }
-                        
-                        self.program.push(Opcode { op_type: OpcodeType::Mul, op_operand: Some(0), op_regs: vec![operands[0].to_string(), operands[1].to_string(), operands[2].to_string()] });
-                    }
-                    DIV => {
-                        let operands: Vec<&str> = tokens[0].split(", ").collect();
-                        if operands.len() < 3 || operands.len() > 3 {
-                            eprintln!("[Error]: Invalid number of arguments");
-                            continue;
-                        }
-                        
-                        self.program.push(Opcode { op_type: OpcodeType::Div, op_operand: Some(0), op_regs: vec![operands[0].to_string(), operands[1].to_string(), operands[2].to_string()] });
                     }
                     
                     DEC => {
@@ -630,35 +614,23 @@ impl OSVM {
                         self.program.push(Opcode { op_type: OpcodeType::Equal, op_operand: Some(0), op_regs: Vec::new() });
                     }
                     
-                    JT => {
-                        let mut operands: Vec<&str> = tokens[0].split(", ").collect();
-                        if operands.len() < 2 || operands.len() > 2 {
-                            eprintln!("[Error]: Invalid number of arguments");
-                            continue;
-                        }
+                    JT | JZ | JNZ => {
+                        let mut operands: Vec<&str> = self.get_operands(tokens.clone(), 2, 2, &line_num);
                         
                         let op: i64 = operands[0].parse().unwrap();
-                        self.program.push(Opcode { op_type: OpcodeType::Jt, op_operand: Some(operands[0].parse().unwrap()), op_regs: vec![operands[1].to_string()] });
-                    }
-                    JZ => {
-                        let mut operands: Vec<&str> = tokens[0].split(", ").collect();
-                        if operands.len() < 2 || operands.len() > 2 {
-                            eprintln!("[Error]: Invalid number of arguments");
-                            continue;
+                        match inst_name {
+                            JT => {
+                                self.program.push(Opcode { op_type: OpcodeType::Jt, op_operand: Some(operands[0].parse().unwrap()), op_regs: vec![operands[1].to_string()] });
+                            }
+                            JZ => {
+                                self.program.push(Opcode { op_type: OpcodeType::Jz, op_operand: Some(operands[0].parse().unwrap()), op_regs: vec![operands[1].to_string()] });
+                            }
+                            JNZ => {
+                                self.program.push(Opcode { op_type: OpcodeType::Jnz, op_operand: Some(operands[0].parse().unwrap()), op_regs: vec![operands[1].to_string()] });
+                            }
+                            
+                            _ => {}
                         }
-                        
-                        let op: i64 = operands[0].parse().unwrap();
-                        self.program.push(Opcode { op_type: OpcodeType::Jz, op_operand: Some(operands[0].parse().unwrap()), op_regs: vec![operands[1].to_string()] });
-                    }
-                    JNZ => {
-                        let mut operands: Vec<&str> = tokens[0].split(", ").collect();
-                        if operands.len() < 2 || operands.len() > 2 {
-                            eprintln!("[Error]: Invalid number of arguments");
-                            continue;
-                        }
-                        
-                        let op: i64 = operands[0].parse().unwrap();
-                        self.program.push(Opcode { op_type: OpcodeType::Jnz, op_operand: Some(operands[0].parse().unwrap()), op_regs: vec![operands[1].to_string()] });
                     }
                     
                     // Stack opcodes
@@ -675,17 +647,23 @@ impl OSVM {
                         self.program.push(Opcode { op_type: OpcodeType::Pop, op_operand: Some(0), op_regs: Vec::new() });
                     }
                     
-                    ADDS => {
-                        self.program.push(Opcode { op_type: OpcodeType::Adds, op_operand: Some(0), op_regs: Vec::new() });
-                    }
-                    SUBS => {
-                        self.program.push(Opcode { op_type: OpcodeType::Subs, op_operand: Some(0), op_regs: Vec::new() });
-                    }
-                    MULS => {
-                        self.program.push(Opcode { op_type: OpcodeType::Muls, op_operand: Some(0), op_regs: Vec::new() });
-                    }
-                    DIVS => {
-                        self.program.push(Opcode { op_type: OpcodeType::Divs, op_operand: Some(0), op_regs: Vec::new() });
+                    ADDS | SUBS | MULS | DIVS => {
+                        match inst_name {
+                            ADDS => {
+                                self.program.push(Opcode { op_type: OpcodeType::Adds, op_operand: Some(0), op_regs: Vec::new() });
+                            }
+                            SUBS => {
+                                self.program.push(Opcode { op_type: OpcodeType::Subs, op_operand: Some(0), op_regs: Vec::new() });
+                            }
+                            MULS => {
+                                self.program.push(Opcode { op_type: OpcodeType::Muls, op_operand: Some(0), op_regs: Vec::new() });
+                            }
+                            DIVS => {
+                                self.program.push(Opcode { op_type: OpcodeType::Divs, op_operand: Some(0), op_regs: Vec::new() });
+                            }
+                            
+                            _ => {}
+                        }
                     }
                     
                     DUPL => {
@@ -697,17 +675,22 @@ impl OSVM {
                         self.program.push(Opcode { op_type: OpcodeType::Equals, op_operand: Some(0), op_regs: Vec::new() });
                     }
                     
-                    JTS => {
+                    JTS | JZS | JNZS => {
                         let op: i64 = tokens[0].parse().unwrap();
-                        self.program.push(Opcode { op_type: OpcodeType::Jts, op_operand: Some(op), op_regs: Vec::new() });
-                    }
-                    JZS => {
-                        let op: i64 = tokens[0].parse().unwrap();
-                        self.program.push(Opcode { op_type: OpcodeType::Jzs, op_operand: Some(op), op_regs: Vec::new() });
-                    }
-                    JNZS => {
-                        let op: i64 = tokens[0].parse().unwrap();
-                        self.program.push(Opcode { op_type: OpcodeType::Jnzs, op_operand: Some(op), op_regs: Vec::new() });
+                        
+                        match inst_name {
+                            JTS => {
+                                self.program.push(Opcode { op_type: OpcodeType::Jts, op_operand: Some(op), op_regs: Vec::new() });
+                            }
+                            JZS => {
+                                self.program.push(Opcode { op_type: OpcodeType::Jzs, op_operand: Some(op), op_regs: Vec::new() });
+                            }
+                            JNZS => {
+                                self.program.push(Opcode { op_type: OpcodeType::Jnzs, op_operand: Some(op), op_regs: Vec::new() });
+                            }
+                            
+                            _ => {}
+                        }
                     }
                     
                     // Universal opcodes
@@ -726,7 +709,6 @@ impl OSVM {
                 }
             }
             
-            line_num += 1;
         }
     }
     

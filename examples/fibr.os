@@ -8,6 +8,6 @@ add r0, r0, r1
 srg r0, r1
 
 ; Decrement counter
-dec r16
+dec r1
 jnz 3, r16
 hlt
