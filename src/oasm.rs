@@ -7,21 +7,21 @@ pub struct Label {
 }
 
 #[derive(Clone)]
-pub struct Jumps {
+pub struct DeferredOperand {
     pub addr: usize,
     pub label: String,
 }
 
 pub struct OASM {
     pub labels: Vec<Label>,
-    pub jumps: Vec<Jumps>,
+    pub deferred_operands: Vec<DeferredOperand>,
 }
 
 impl OASM {
     pub fn init() -> OASM {
         OASM {
             labels: Vec::new(),
-            jumps: Vec::new(),
+            deferred_operands: Vec::new(),
         }
     }
     
@@ -43,8 +43,8 @@ impl OASM {
         });
     }
     
-    pub fn jumps_push(self: &mut Self, label_name: &str, jump_addr: usize) {
-        self.jumps.push(Jumps {
+    pub fn deferred_operands_push(self: &mut Self, label_name: &str, jump_addr: usize) {
+        self.deferred_operands.push(DeferredOperand {
             addr: jump_addr,
             label: label_name.to_string()
         });

@@ -664,7 +664,7 @@ impl OSVM {
                                 _ => {}
                             }
                         } else {
-                            oasm.jumps_push(operands[0], self.program.len());
+                            oasm.deferred_operands_push(operands[0], self.program.len());
                             match inst_name {
                                 JT => {
                                     self.program.push(Opcode { op_type: OpcodeType::Jt, op_operand: Some(0), op_regs: vec![operands[1].to_string()] });
@@ -739,7 +739,7 @@ impl OSVM {
                                 _ => {}
                             }
                         } else {
-                            oasm.jumps_push(tokens[0], self.program.len());
+                            oasm.deferred_operands_push(tokens[0], self.program.len());
                             match inst_name {
                                 JT => {
                                     self.program.push(Opcode { op_type: OpcodeType::Jts, op_operand: Some(0), op_regs: Vec::new() });
@@ -758,7 +758,7 @@ impl OSVM {
                     
                     // Universal opcodes
                     JMP => {
-                        oasm.jumps_push(tokens[0], self.program.len());
+                        oasm.deferred_operands_push(tokens[0], self.program.len());
                         self.program.push(Opcode { op_type: OpcodeType::Jmp, op_operand: Some(0), op_regs: Vec::new() });
                     }
                     
@@ -774,9 +774,9 @@ impl OSVM {
             
         }
         
-        for i in 0..oasm.jumps.len() {
-            let label_addr = oasm.labels_contains(oasm.jumps[i].label.as_str());
-            self.program[oasm.jumps[i].addr].op_operand = label_addr;
+        for i in 0..oasm.deferred_operands.len() {
+            let label_addr = oasm.labels_contains(oasm.deferred_operands[i].label.as_str());
+            self.program[oasm.deferred_operands[i].addr].op_operand = label_addr;
         }
     }
     
