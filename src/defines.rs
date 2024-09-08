@@ -46,6 +46,7 @@ pub const EQUALS: &str = "eqs";
 pub const DUPL: &str = "dupl";
 pub const JTS: &str = "jts";
 pub const JZS: &str = "jzs";
+pub const JNZS: &str = "jzs";
 
 // Universal opcode
 pub const JMP: &str = "jmp";
