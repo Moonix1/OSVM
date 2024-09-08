@@ -624,19 +624,35 @@ impl OSVM {
                     JT | JZ | JNZ => {
                         let mut operands: Vec<&str> = self.get_operands(tokens.clone(), 2, 2, &line_num);
                         
-                        oasm.jumps_push(operands[0], self.program.len());
-                        match inst_name {
-                            JT => {
-                                self.program.push(Opcode { op_type: OpcodeType::Jt, op_operand: Some(0), op_regs: vec![operands[1].to_string()] });
+                        if operands[0].starts_with('#') {
+                            match inst_name {
+                                JT => {
+                                    self.program.push(Opcode { op_type: OpcodeType::Jt, op_operand: Some(operands[0].replace("#", "").parse().unwrap()), op_regs: vec![operands[1].to_string()] });
+                                }
+                                JZ => {
+                                    self.program.push(Opcode { op_type: OpcodeType::Jz, op_operand: Some(operands[0].replace("#", "").parse().unwrap()), op_regs: vec![operands[1].to_string()] });
+                                }
+                                JNZ => {
+                                    self.program.push(Opcode { op_type: OpcodeType::Jnz, op_operand: Some(operands[0].replace("#", "").parse().unwrap()), op_regs: vec![operands[1].to_string()] });
+                                }
+                                
+                                _ => {}
                             }
-                            JZ => {
-                                self.program.push(Opcode { op_type: OpcodeType::Jz, op_operand: Some(0), op_regs: vec![operands[1].to_string()] });
+                        } else {
+                            oasm.jumps_push(operands[0], self.program.len());
+                            match inst_name {
+                                JT => {
+                                    self.program.push(Opcode { op_type: OpcodeType::Jt, op_operand: Some(0), op_regs: vec![operands[1].to_string()] });
+                                }
+                                JZ => {
+                                    self.program.push(Opcode { op_type: OpcodeType::Jz, op_operand: Some(0), op_regs: vec![operands[1].to_string()] });
+                                }
+                                JNZ => {
+                                    self.program.push(Opcode { op_type: OpcodeType::Jnz, op_operand: Some(0), op_regs: vec![operands[1].to_string()] });
+                                }
+                                
+                                _ => {}
                             }
-                            JNZ => {
-                                self.program.push(Opcode { op_type: OpcodeType::Jnz, op_operand: Some(0), op_regs: vec![operands[1].to_string()] });
-                            }
-                            
-                            _ => {}
                         }
                     }
                     
@@ -683,19 +699,35 @@ impl OSVM {
                     }
                     
                     JTS | JZS | JNZS => {
-                        oasm.jumps_push(tokens[0], self.program.len());
-                        match inst_name {
-                            JTS => {
-                                self.program.push(Opcode { op_type: OpcodeType::Jts, op_operand: Some(0), op_regs: Vec::new() });
+                        if tokens[0].starts_with('#') {
+                            match inst_name {
+                                JTS => {
+                                    self.program.push(Opcode { op_type: OpcodeType::Jts, op_operand: Some(tokens[0].replace("#", "").parse().unwrap()), op_regs: Vec::new() });
+                                }
+                                JZS => {
+                                    self.program.push(Opcode { op_type: OpcodeType::Jzs, op_operand: Some(tokens[0].replace("#", "").parse().unwrap()), op_regs: Vec::new() });
+                                }
+                                JNZS => {
+                                    self.program.push(Opcode { op_type: OpcodeType::Jnzs, op_operand: Some(tokens[0].replace("#", "").parse().unwrap()), op_regs: Vec::new() });
+                                }
+                                
+                                _ => {}
                             }
-                            JZS => {
-                                self.program.push(Opcode { op_type: OpcodeType::Jzs, op_operand: Some(0), op_regs: Vec::new() });
+                        } else {
+                            oasm.jumps_push(tokens[0], self.program.len());
+                            match inst_name {
+                                JT => {
+                                    self.program.push(Opcode { op_type: OpcodeType::Jts, op_operand: Some(0), op_regs: Vec::new() });
+                                }
+                                JZ => {
+                                    self.program.push(Opcode { op_type: OpcodeType::Jzs, op_operand: Some(0), op_regs: Vec::new() });
+                                }
+                                JNZ => {
+                                    self.program.push(Opcode { op_type: OpcodeType::Jnzs, op_operand: Some(0), op_regs: Vec::new() });
+                                }
+                                
+                                _ => {}
                             }
-                            JNZS => {
-                                self.program.push(Opcode { op_type: OpcodeType::Jnzs, op_operand: Some(0), op_regs: Vec::new() });
-                            }
-                            
-                            _ => {}
                         }
                     }
                     
