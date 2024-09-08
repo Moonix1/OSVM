@@ -8,4 +8,5 @@ _start:
     
 loop_test:
     add r3, r3, r4
-    jmp loop_test
+
+jump: jmp loop_test

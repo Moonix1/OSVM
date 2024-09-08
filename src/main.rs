@@ -572,13 +572,20 @@ impl OSVM {
             
             let mut tokens: Vec<&str> = line.trim().splitn(2, char::is_whitespace).collect();
             if !tokens.is_empty() && !tokens[0].is_empty() {
-                let inst_name = tokens[0];
+                let mut inst_name = tokens[0];
                 tokens.remove(0);
                 
                 if inst_name.ends_with(':') {
                     let label = inst_name.replace(":", "");
                     oasm.labels_push(&label, self.program.len());
-                    continue;
+                    
+                    if tokens.len() > 0 {
+                        tokens = tokens[0].trim().splitn(2, char::is_whitespace).collect();
+                        inst_name = tokens[0];
+                        tokens.remove(0);
+                    } else {
+                        continue;
+                    }
                 }
                 
                 match inst_name {
