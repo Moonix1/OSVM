@@ -1,6 +1,8 @@
-mov r0, 34
-mov r1, 35
+mov r0, #34
+mov r1, #35
 add r2, r0, r1
+
+mov r3, r2
 
 push 500
 push 80

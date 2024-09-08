@@ -176,13 +176,24 @@ impl OSVM {
         
         match opcode.op_type {
             OpcodeType::Mov => {
-                if opcode.op_regs.len() < 1 {
-                    return Error::RegisterOverflow;
-                } else if opcode.op_regs.len() > 1 {
-                    return Error::RegisterUnderflow;
+                if opcode.op_operand == None {
+                    if opcode.op_regs.len() < 1 {
+                        return Error::RegisterOverflow;
+                    } else if opcode.op_regs.len() > 2 {
+                        return Error::RegisterUnderflow;
+                    }
+                    
+                    let reg = *self.find_register(&opcode, 1).unwrap();
+                    self.assign_register(&opcode, 0, reg);
+                } else {
+                    if opcode.op_regs.len() < 1 {
+                        return Error::RegisterOverflow;
+                    } else if opcode.op_regs.len() > 1 {
+                        return Error::RegisterUnderflow;
+                    }
+                    
+                    self.assign_register(&opcode, 0, opcode.op_operand.unwrap());
                 }
-                
-                self.assign_register(&opcode, 0, opcode.op_operand.unwrap());
                 self.pc += 1;
             }
             OpcodeType::Push => {
@@ -450,7 +461,13 @@ impl OSVM {
                             continue;
                         }
                         
-                        self.program.push(Opcode { op_type: OpcodeType::Mov, op_operand: Some(operands[1].parse().unwrap()), op_regs: vec![operands[0].to_string()] });
+                        if operands[1].starts_with("r") {
+                            self.program.push(Opcode { op_type: OpcodeType::Mov, op_operand: None, op_regs: vec![operands[0].to_string(), operands[1].to_string()] });
+                        } else if operands[1].starts_with("#") {
+                            self.program.push(Opcode { op_type: OpcodeType::Mov, op_operand: Some(operands[1].replace("#", "").parse().unwrap()), op_regs: vec![operands[0].to_string()] });
+                        } else {
+                            eprintln!("[Error]: Invalid operand `{}` at line: {}", operands[1], line_num);
+                        }
                     }
                     CLR => {
                         if tokens.len() < 1 || tokens.len() > 1 {
