@@ -1,4 +1,34 @@
-pub type Word = i64;
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
+pub enum Word {
+    U64(u64),
+    I64(i64),
+    F64(f64),
+}
+
+impl Word {
+    pub fn to_u64(&self) -> u64 {
+        match self {
+            Word::U64(value) => *value,
+            _ => 0,
+        }
+    }
+
+    pub fn to_i64(&self) -> i64 {
+        match self {
+            Word::I64(value) => *value,
+            _ => 0,
+        }
+    }
+
+    pub fn to_f64(&self) -> f64 {
+        match self {
+            Word::F64(value) => *value,
+            _ => 0.0,
+        }
+    }
+}
 
 // Register Names
 pub const R0: &str = "r0";
