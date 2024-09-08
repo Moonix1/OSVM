@@ -28,6 +28,10 @@ pub struct OSVM {
     r10: Word,
     r11: Word,
     r12: Word,
+    r13: Word,
+    r14: Word,
+    r15: Word,
+    r16: Word,
     
     pc: Word,
 
@@ -57,6 +61,10 @@ impl OSVM {
             r10: 0,
             r11: 0,
             r12: 0,
+            r13: 0,
+            r14: 0,
+            r15: 0,
+            r16: 0,
             
             pc: 0,
             
@@ -112,6 +120,18 @@ impl OSVM {
             R12 => {
                 self.r12 = new_value;
             }
+            R13 => {
+                self.r13 = new_value;
+            }
+            R14 => {
+                self.r14 = new_value;
+            }
+            R15 => {
+                self.r15 = new_value;
+            }
+            R16 => {
+                self.r16 = new_value;
+            }
             
             _ => {
                 
@@ -160,6 +180,18 @@ impl OSVM {
             }
             R12 => {
                 return Some(&mut self.r12);
+            }
+            R13 => {
+                return Some(&mut self.r13);
+            }
+            R14 => {
+                return Some(&mut self.r14);
+            }
+            R15 => {
+                return Some(&mut self.r15);
+            }
+            R16 => {
+                return Some(&mut self.r16);
             }
             
             _  => {

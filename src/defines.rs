@@ -14,6 +14,10 @@ pub const R9: &str = "r9";
 pub const R10: &str = "r10";
 pub const R11: &str = "r11";
 pub const R12: &str = "r12";
+pub const R13: &str = "r13";
+pub const R14: &str = "r14";
+pub const R15: &str = "r15";
+pub const R16: &str = "r16";
 
 // Opcode Names
 
