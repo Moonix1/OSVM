@@ -230,6 +230,20 @@ impl OSVM {
                 }
                 self.pc += 1;
             }
+            OpcodeType::Phsr => {
+                if self.stack.len() < 1 {
+                    return Error::StackUnderflow;
+                }
+                
+                if opcode.op_regs.len() < 1 {
+                    return Error::RegisterOverflow;
+                } else if opcode.op_regs.len() > 1 {
+                    return Error::RegisterUnderflow;
+                }
+                
+                self.assign_register(&opcode, 0, self.stack[self.stack.len() - 1]);
+                self.pc += 1
+            }
             
             OpcodeType::Srg => {
                 if opcode.op_regs.len() < 1 {
@@ -580,6 +594,10 @@ impl OSVM {
                             eprintln!("[Error]: Invalid operand `{}` at line: {}", operands[1], line_num);
                         }
                     }
+                    PHSR => {
+                        self.program.push(Opcode { op_type: OpcodeType::Phsr, op_operand: None, op_regs: vec![tokens[0].to_string()] });
+                    }
+                    
                     SRG => {
                         let mut operands: Vec<&str> = self.get_operands(tokens.clone(), 2, 2, &line_num);
                         

@@ -23,6 +23,7 @@ pub const R16: &str = "r16";
 
 // Register opcodes
 pub const MOV: &str = "mov";
+pub const PHSR: &str = "phsr";
 pub const SRG: &str = "srg";
 pub const CLR: &str = "clr";
 pub const ADD: &str = "add";

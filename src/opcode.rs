@@ -7,6 +7,7 @@ pub enum OpcodeType {
     
     // Register opcodes
     Mov,
+    Phsr,
     Srg,
     
     Clr,

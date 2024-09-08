@@ -6,4 +6,6 @@ _start:
     ; Pushes the registers values onto the stack
     push r0
     push r1
+    
+    phsr r16 ; Copies top of the stack to register
     hlt
