@@ -23,14 +23,17 @@ pub const R16: &str = "r16";
 
 // Register opcodes
 pub const MOV: &str = "mov";
+pub const SRG: &str = "srg";
 pub const CLR: &str = "clr";
 pub const ADD: &str = "add";
 pub const SUB: &str = "sub";
 pub const MUL: &str = "mul";
 pub const DIV: &str = "div";
+pub const DEC: &str = "dec";
 pub const EQUAL: &str = "eq";
 pub const JT: &str = "jt";
 pub const JZ: &str = "jz";
+pub const JNZ: &str = "jnz";
 
 // Stack opcodes
 pub const PUSH: &str = "push";

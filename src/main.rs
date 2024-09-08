@@ -229,6 +229,20 @@ impl OSVM {
                 self.pc += 1;
             }
             
+            OpcodeType::Srg => {
+                if opcode.op_regs.len() < 1 {
+                    return Error::RegisterOverflow;
+                } else if opcode.op_regs.len() > 2 {
+                    return Error::RegisterUnderflow;
+                }
+                
+                let reg1 = *self.find_register(&opcode, 0).unwrap();
+                let reg2 = *self.find_register(&opcode, 1).unwrap();
+                self.assign_register(&opcode, 0, reg2);
+                self.assign_register(&opcode, 1, reg1);
+                self.pc += 1;
+            }
+            
             OpcodeType::Clr => {
                 if opcode.op_regs.len() < 1 {
                     return Error::RegisterOverflow;
@@ -305,6 +319,18 @@ impl OSVM {
                 self.pc += 1;
             }
             
+            OpcodeType::Dec => {
+                if opcode.op_regs.len() < 1 {
+                    return Error::RegisterUnderflow;
+                } else if opcode.op_regs.len() > 1 {
+                    return Error::RegisterOverflow;
+                }
+                
+                let reg1 = self.find_register(&opcode, 0).unwrap();
+                *reg1 = *reg1 - 1;
+                self.pc += 1;
+            }
+            
             OpcodeType::Equal => {
                 if opcode.op_regs.len() < 1 {
                     return Error::RegisterUnderflow;
@@ -344,6 +370,20 @@ impl OSVM {
                 
                 let reg1 = *self.find_register(&opcode, 0).unwrap();
                 if reg1 == 0 {
+                    self.pc = opcode.op_operand.unwrap();
+                } else {
+                    self.pc += 1;
+                }
+            }
+            OpcodeType::Jnz => {
+                if opcode.op_regs.len() < 1 {
+                    return Error::RegisterUnderflow;
+                } else if opcode.op_regs.len() > 1 {
+                    return Error::RegisterOverflow;
+                }
+                
+                let reg1 = *self.find_register(&opcode, 0).unwrap();
+                if reg1 != 0 {
                     self.pc = opcode.op_operand.unwrap();
                 } else {
                     self.pc += 1;
@@ -422,8 +462,8 @@ impl OSVM {
                     return Error::StackUnderflow;
                 }
                 
-                let a = self.stack.pop().unwrap();
-                let b = self.stack.pop().unwrap();
+                let a = self.stack[self.stack.len() - 1];
+                let b = self.stack[self.stack.len() - 2];
                 self.stack.push((b == a) as i64);
                 self.pc += 1;
             }
@@ -460,6 +500,18 @@ impl OSVM {
                 
                 let a = self.stack.pop().unwrap();
                 if a == 0 {
+                    self.pc = opcode.op_operand.unwrap();
+                } else {
+                    self.pc += 1;
+                }
+            }
+            OpcodeType::Jnzs => {
+                if self.stack.len() < 1 {
+                    return Error::StackUnderflow;
+                }
+                
+                let a = self.stack[self.stack.len() - 1];
+                if a != 0 {
                     self.pc = opcode.op_operand.unwrap();
                 } else {
                     self.pc += 1;
@@ -514,6 +566,16 @@ impl OSVM {
                             eprintln!("[Error]: Invalid operand `{}` at line: {}", operands[1], line_num);
                         }
                     }
+                    SRG => {
+                        let mut operands: Vec<&str> = tokens[0].split(", ").collect();
+                        if operands.len() < 2 || operands.len() > 2 {
+                            eprintln!("[Error]: Invalid number of arguments");
+                            continue;
+                        }
+                        
+                        self.program.push(Opcode { op_type: OpcodeType::Srg, op_operand: None, op_regs: vec![operands[0].to_string(), operands[1].to_string()] });
+                    }
+                    
                     CLR => {
                         if tokens.len() < 1 || tokens.len() > 1 {
                             eprintln!("[Error]: Invalid number of arguments");
@@ -560,6 +622,10 @@ impl OSVM {
                         self.program.push(Opcode { op_type: OpcodeType::Div, op_operand: Some(0), op_regs: vec![operands[0].to_string(), operands[1].to_string(), operands[2].to_string()] });
                     }
                     
+                    DEC => {
+                        self.program.push(Opcode { op_type: OpcodeType::Dec, op_operand: Some(0), op_regs: vec![tokens[0].to_string()] });
+                    }
+                    
                     EQUAL => {
                         self.program.push(Opcode { op_type: OpcodeType::Equal, op_operand: Some(0), op_regs: Vec::new() });
                     }
@@ -571,7 +637,7 @@ impl OSVM {
                             continue;
                         }
                         
-                        let op: i64 = tokens[0].parse().unwrap();
+                        let op: i64 = operands[0].parse().unwrap();
                         self.program.push(Opcode { op_type: OpcodeType::Jt, op_operand: Some(operands[0].parse().unwrap()), op_regs: vec![operands[1].to_string()] });
                     }
                     JZ => {
@@ -581,8 +647,18 @@ impl OSVM {
                             continue;
                         }
                         
-                        let op: i64 = tokens[0].parse().unwrap();
+                        let op: i64 = operands[0].parse().unwrap();
                         self.program.push(Opcode { op_type: OpcodeType::Jz, op_operand: Some(operands[0].parse().unwrap()), op_regs: vec![operands[1].to_string()] });
+                    }
+                    JNZ => {
+                        let mut operands: Vec<&str> = tokens[0].split(", ").collect();
+                        if operands.len() < 2 || operands.len() > 2 {
+                            eprintln!("[Error]: Invalid number of arguments");
+                            continue;
+                        }
+                        
+                        let op: i64 = operands[0].parse().unwrap();
+                        self.program.push(Opcode { op_type: OpcodeType::Jnz, op_operand: Some(operands[0].parse().unwrap()), op_regs: vec![operands[1].to_string()] });
                     }
                     
                     // Stack opcodes
@@ -628,6 +704,10 @@ impl OSVM {
                     JZS => {
                         let op: i64 = tokens[0].parse().unwrap();
                         self.program.push(Opcode { op_type: OpcodeType::Jzs, op_operand: Some(op), op_regs: Vec::new() });
+                    }
+                    JNZS => {
+                        let op: i64 = tokens[0].parse().unwrap();
+                        self.program.push(Opcode { op_type: OpcodeType::Jnzs, op_operand: Some(op), op_regs: Vec::new() });
                     }
                     
                     // Universal opcodes

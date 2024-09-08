@@ -7,6 +7,7 @@ pub enum OpcodeType {
     
     // Register opcodes
     Mov,
+    Srg,
     
     Clr,
     
@@ -15,10 +16,13 @@ pub enum OpcodeType {
     Mul,
     Div,
     
+    Dec,
+    
     Equal,
     
     Jt,
     Jz,
+    Jnz,
     
     // Stack opcodes
     Push,
@@ -35,6 +39,7 @@ pub enum OpcodeType {
     
     Jts,
     Jzs,
+    Jnzs,
     
     // Universal opcode
     Jmp,
