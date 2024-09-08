@@ -1,6 +1,7 @@
 #![allow(unused, dead_code)]
 
 mod defines;
+mod oasm;
 mod opcode;
 mod error;
 
@@ -9,6 +10,7 @@ use std::io::stdin;
 use serde::{Serialize, Deserialize};
 
 use defines::*;
+use oasm::*;
 use opcode::*;
 use error::*;
 
@@ -545,20 +547,25 @@ impl OSVM {
         operands
     }
     
-    fn translate_source(self: &mut Self, source: String) {
+    fn translate_source(self: &mut Self, mut oasm: OASM, source: String) {
         let lines: Vec<&str> = source.lines().collect();
         let mut line_num = 0;
         for line in lines {
             line_num += 1;
-            if line.is_empty() || line.starts_with(';') {
+            if line.is_empty() || line.trim().starts_with(';') {
                 continue;
             }
             
-            let mut tokens: Vec<&str> = line.splitn(2, char::is_whitespace).collect();
-           
-            if !tokens.is_empty() {
+            let mut tokens: Vec<&str> = line.trim().splitn(2, char::is_whitespace).collect();
+            if !tokens.is_empty() && !tokens[0].is_empty() {
                 let inst_name = tokens[0];
                 tokens.remove(0);
+                
+                if inst_name.ends_with(':') {
+                    let label = inst_name.replace(":", "");
+                    oasm.labels_push(&label, self.program.len());
+                    continue;
+                }
                 
                 match inst_name {
                     // Register opcodes
@@ -617,16 +624,16 @@ impl OSVM {
                     JT | JZ | JNZ => {
                         let mut operands: Vec<&str> = self.get_operands(tokens.clone(), 2, 2, &line_num);
                         
-                        let op: i64 = operands[0].parse().unwrap();
+                        oasm.jumps_push(operands[0], self.program.len());
                         match inst_name {
                             JT => {
-                                self.program.push(Opcode { op_type: OpcodeType::Jt, op_operand: Some(operands[0].parse().unwrap()), op_regs: vec![operands[1].to_string()] });
+                                self.program.push(Opcode { op_type: OpcodeType::Jt, op_operand: Some(0), op_regs: vec![operands[1].to_string()] });
                             }
                             JZ => {
-                                self.program.push(Opcode { op_type: OpcodeType::Jz, op_operand: Some(operands[0].parse().unwrap()), op_regs: vec![operands[1].to_string()] });
+                                self.program.push(Opcode { op_type: OpcodeType::Jz, op_operand: Some(0), op_regs: vec![operands[1].to_string()] });
                             }
                             JNZ => {
-                                self.program.push(Opcode { op_type: OpcodeType::Jnz, op_operand: Some(operands[0].parse().unwrap()), op_regs: vec![operands[1].to_string()] });
+                                self.program.push(Opcode { op_type: OpcodeType::Jnz, op_operand: Some(0), op_regs: vec![operands[1].to_string()] });
                             }
                             
                             _ => {}
@@ -676,17 +683,16 @@ impl OSVM {
                     }
                     
                     JTS | JZS | JNZS => {
-                        let op: i64 = tokens[0].parse().unwrap();
-                        
+                        oasm.jumps_push(tokens[0], self.program.len());
                         match inst_name {
                             JTS => {
-                                self.program.push(Opcode { op_type: OpcodeType::Jts, op_operand: Some(op), op_regs: Vec::new() });
+                                self.program.push(Opcode { op_type: OpcodeType::Jts, op_operand: Some(0), op_regs: Vec::new() });
                             }
                             JZS => {
-                                self.program.push(Opcode { op_type: OpcodeType::Jzs, op_operand: Some(op), op_regs: Vec::new() });
+                                self.program.push(Opcode { op_type: OpcodeType::Jzs, op_operand: Some(0), op_regs: Vec::new() });
                             }
                             JNZS => {
-                                self.program.push(Opcode { op_type: OpcodeType::Jnzs, op_operand: Some(op), op_regs: Vec::new() });
+                                self.program.push(Opcode { op_type: OpcodeType::Jnzs, op_operand: Some(0), op_regs: Vec::new() });
                             }
                             
                             _ => {}
@@ -695,8 +701,8 @@ impl OSVM {
                     
                     // Universal opcodes
                     JMP => {
-                        let op: i64 = tokens[0].parse().unwrap();
-                        self.program.push(Opcode { op_type: OpcodeType::Jmp, op_operand: Some(op), op_regs: Vec::new() });
+                        oasm.jumps_push(tokens[0], self.program.len());
+                        self.program.push(Opcode { op_type: OpcodeType::Jmp, op_operand: Some(0), op_regs: Vec::new() });
                     }
                     
                     HLT => {
@@ -709,6 +715,11 @@ impl OSVM {
                 }
             }
             
+        }
+        
+        for i in 0..oasm.jumps.len() {
+            let label_addr = oasm.labels_contains(oasm.jumps[i].label.as_str());
+            self.program[oasm.jumps[i].addr].op_operand = label_addr;
         }
     }
     
@@ -810,6 +821,7 @@ fn main() {
     let program_file = shift(&mut index, &args);
     
     let mut osvm: OSVM = OSVM::init();
+    let oasm: OASM = OASM::init();
     let opcode: Opcode = Opcode::init();
     
     let subcommand = shift(&mut index, &args);
@@ -819,7 +831,7 @@ fn main() {
             let input_path = shift(&mut index, &args);
             let output_path = shift(&mut index, &args);
             let source = get_file_contents(&input_path);
-            osvm.translate_source(source);
+            osvm.translate_source(oasm, source);
             osvm.save_program_to_file(&output_path);
             
             if subcommand == "run" {
