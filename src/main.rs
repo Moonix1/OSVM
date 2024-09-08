@@ -196,10 +196,6 @@ impl OSVM {
                 }
                 self.pc += 1;
             }
-            OpcodeType::Push => {
-                self.stack.push(opcode.op_operand.unwrap());
-                self.pc += 1;
-            }
             
             OpcodeType::Clr => {
                 if opcode.op_regs.len() < 1 {
@@ -295,9 +291,9 @@ impl OSVM {
             
             OpcodeType::Jt => {
                 if opcode.op_regs.len() < 1 {
-                    return Error::RegisterOverflow;
-                } else if opcode.op_regs.len() > 1 {
                     return Error::RegisterUnderflow;
+                } else if opcode.op_regs.len() > 1 {
+                    return Error::RegisterOverflow;
                 }
                 
                 let reg1 = *self.find_register(&opcode, 0).unwrap();
@@ -309,9 +305,9 @@ impl OSVM {
             }
             OpcodeType::Jz => {
                 if opcode.op_regs.len() < 1 {
-                    return Error::RegisterOverflow;
-                } else if opcode.op_regs.len() > 1 {
                     return Error::RegisterUnderflow;
+                } else if opcode.op_regs.len() > 1 {
+                    return Error::RegisterOverflow;
                 }
                 
                 let reg1 = *self.find_register(&opcode, 0).unwrap();
@@ -323,6 +319,22 @@ impl OSVM {
             }
             
             // Stack opcodes
+            OpcodeType::Push => {
+                if opcode.op_operand == None {
+                    if opcode.op_regs.len() < 1 {
+                        return Error::RegisterUnderflow;
+                    } else if opcode.op_regs.len() > 1 {
+                        return Error::RegisterOverflow;
+                    }
+                    
+                    let reg = *self.find_register(&opcode, 0).unwrap();
+                    self.stack.push(reg);
+                } else {
+                    self.stack.push(opcode.op_operand.unwrap());
+                }
+                self.pc += 1;
+            }
+            
             OpcodeType::Pop => {
                 if self.stack.len() < 1 {
                     return Error::StackUnderflow;
@@ -440,7 +452,7 @@ impl OSVM {
     }
     
     fn translate_source(self: &mut Self, source: String) {
-        let lines: Vec<&str> = source.lines().collect();
+        let lines: Vec<&str> = source.lines().filter(|line| !line.trim_start().starts_with(';')).collect();
         let mut line_num = 1;
         for line in lines {
             if line.is_empty() {
@@ -448,6 +460,7 @@ impl OSVM {
             }
             
             let mut tokens: Vec<&str> = line.splitn(2, char::is_whitespace).collect();
+           
             if !tokens.is_empty() {
                 let inst_name = tokens[0];
                 tokens.remove(0);
@@ -542,8 +555,13 @@ impl OSVM {
                     
                     // Stack opcodes
                     PUSH => {
-                        let op: i64 = tokens[0].parse().unwrap();
-                        self.program.push(Opcode { op_type: OpcodeType::Push, op_operand: Some(op), op_regs: Vec::new() });
+                        if tokens[0].starts_with('r') {
+                            self.program.push(Opcode { op_type: OpcodeType::Push, op_operand: None, op_regs: vec![tokens[0].to_string()] });
+                        } else if tokens[0].starts_with('#') {
+                            self.program.push(Opcode { op_type: OpcodeType::Push, op_operand: Some(tokens[0].replace("#", "").parse().unwrap()), op_regs: Vec::new() });
+                        } else {
+                            eprintln!("[Error]: Invalid operand `{}` at line: {}", tokens[0], line_num);
+                        }
                     }
                     POP => {
                         self.program.push(Opcode { op_type: OpcodeType::Pop, op_operand: Some(0), op_regs: Vec::new() });
@@ -672,6 +690,9 @@ fn get_file_contents(file_path: &str) -> String {
 fn usage(program_file: &String) {
     println!("[Usage]: {program_file} <SUBCOMMAND> <ARGS>");
     println!("[Subcommands]:");
+    println!("  -   build <INPUT.OS> <OUTPUT.VBIN>  ->  Compiles the program");
+    println!("  -   run   <INPUT.OS> <OUTPUT.VBIN>  ->  Runs the program");
+    println!("  -   debug <INPUT.BIN>               ->  Compiles the program");
 }
 
 fn shift(index: &mut usize, args: &Vec<String>) -> String {
