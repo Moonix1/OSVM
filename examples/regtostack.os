@@ -7,5 +7,5 @@ _start:
     push r0
     push r1
     
-    phsr r16 ; Copies top of the stack to register
+    mov r16, $0
     hlt

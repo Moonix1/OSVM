@@ -7,7 +7,8 @@ pub enum OpcodeType {
     
     // Register opcodes
     Mov,
-    Phsr,
+    Movfs,
+    
     Srg,
     
     Clr,
@@ -46,6 +47,9 @@ pub enum OpcodeType {
     Jmp,
     
     Hlt,
+    
+    // Deprecated
+    Phsr,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -51,12 +51,12 @@ pub const R16: &str = "r16";
 
 // Special Characters
 pub const CONST: &str = "#";
+pub const GSI: &str = "$";
 
 // Opcode Names
 
 // Register opcodes
 pub const MOV: &str = "mov";
-pub const PHSR: &str = "phsr";
 pub const SRG: &str = "srg";
 pub const CLR: &str = "clr";
 pub const ADD: &str = "add";
@@ -85,3 +85,6 @@ pub const JNZS: &str = "jzs";
 // Universal opcode
 pub const JMP: &str = "jmp";
 pub const HLT: &str = "hlt";
+
+// Deprecated
+pub const PHSR: &str = "phsr";

@@ -243,19 +243,15 @@ impl OSVM {
                 }
                 self.pc = Word::U64(self.pc.to_u64() + 1);
             }
-            OpcodeType::Phsr => {
-                if self.stack.len() < 1 {
-                    return Error::StackUnderflow;
-                }
-                
+            OpcodeType::Movfs => {
                 if opcode.op_regs.len() < 1 {
                     return Error::RegisterOverflow;
                 } else if opcode.op_regs.len() > 1 {
                     return Error::RegisterUnderflow;
                 }
                 
-                self.set_tsr(self.stack[self.stack.len() - 1]);
-                self.assign_register(&opcode, 0, self.stack[self.stack.len() - 1]);
+                self.set_tsr(self.stack[self.stack.len() - 1 - opcode.op_operand.unwrap().to_u64() as usize]);
+                self.assign_register(&opcode, 0, self.stack[self.stack.len() - 1 - opcode.op_operand.unwrap().to_u64() as usize]);
                 self.pc = Word::U64(self.pc.to_u64() + 1);
             }
             
@@ -709,6 +705,23 @@ impl OSVM {
                 self.halt = true;
             }
             
+            // Deprecated
+            OpcodeType::Phsr => {
+                if self.stack.len() < 1 {
+                    return Error::StackUnderflow;
+                }
+                
+                if opcode.op_regs.len() < 1 {
+                    return Error::RegisterOverflow;
+                } else if opcode.op_regs.len() > 1 {
+                    return Error::RegisterUnderflow;
+                }
+                
+                self.set_tsr(self.stack[self.stack.len() - 1]);
+                self.assign_register(&opcode, 0, self.stack[self.stack.len() - 1]);
+                self.pc = Word::U64(self.pc.to_u64() + 1);
+            }
+            
             _ => {
                 return Error::InvalidOperand;
             }
@@ -769,11 +782,14 @@ impl OSVM {
                             } else if operands[1].replace(CONST, "").parse::<f64>().is_ok() {
                                 self.program.push(Opcode { op_type: OpcodeType::Mov, op_operand: Some(Word::F64(operands[1].replace(CONST, "").parse().unwrap())), op_regs: vec![operands[0].to_string()] });
                             }
+                        } else if operands[1].starts_with(GSI) {
+                            self.program.push(Opcode { op_type: OpcodeType::Movfs, op_operand: Some(Word::U64(operands[1].replace(GSI, "").parse().unwrap())), op_regs: vec![operands[0].to_string()] });
                         } else {
                             eprintln!("[Error]: Invalid operand `{}` at line: {}", operands[1], line_num);
                         }
                     }
                     PHSR => {
+                        eprintln!("[Warning]: `phsr` is deprecated use `mov [reg], $[index]` instead.");
                         self.program.push(Opcode { op_type: OpcodeType::Phsr, op_operand: None, op_regs: vec![tokens[0].to_string()] });
                     }
                     
