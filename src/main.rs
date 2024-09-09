@@ -823,7 +823,7 @@ impl OSVM {
                     JT | JZ | JNZ => {
                         let mut operands: Vec<&str> = self.get_operands(tokens.clone(), 2, 2, &line_num);
                         
-                        if operands[0].starts_with('#') {
+                        if operands[0].starts_with(CONST) {
                             match inst_name {
                                 JT => {
                                     self.program.push(Opcode { op_type: OpcodeType::Jt, op_operand: Some(Word::U64(operands[0].replace(CONST, "").parse().unwrap())), op_regs: vec![operands[1].to_string()] });
@@ -859,7 +859,7 @@ impl OSVM {
                     PUSH => {
                         if tokens[0].starts_with('r') {
                             self.program.push(Opcode { op_type: OpcodeType::Push, op_operand: None, op_regs: vec![tokens[0].to_string()] });
-                        } else if tokens[0].starts_with('#') {
+                        } else if tokens[0].starts_with(CONST) {
                             if tokens[0].replace(CONST, "").parse::<u64>().is_ok() {
                                 self.program.push(Opcode { op_type: OpcodeType::Push, op_operand: Some(Word::U64(tokens[0].replace(CONST, "").parse().unwrap())), op_regs: Vec::new() });
                             } else if tokens[0].replace(CONST, "").parse::<i64>().is_ok() {
@@ -904,7 +904,7 @@ impl OSVM {
                     }
                     
                     JTS | JZS | JNZS => {
-                        if tokens[0].starts_with('#') {
+                        if tokens[0].starts_with(CONST) {
                             match inst_name {
                                 JTS => {
                                     self.program.push(Opcode { op_type: OpcodeType::Jts, op_operand: Some(Word::U64(tokens[0].replace(CONST, "").parse().unwrap())), op_regs: Vec::new() });
@@ -938,8 +938,12 @@ impl OSVM {
                     
                     // Universal opcodes
                     JMP => {
-                        oasm.deferred_operands_push(tokens[0], self.program.len());
-                        self.program.push(Opcode { op_type: OpcodeType::Jmp, op_operand: None, op_regs: Vec::new() });
+                        if tokens[0].starts_with(CONST) {
+                            self.program.push(Opcode { op_type: OpcodeType::Jmp, op_operand: Some(Word::U64(tokens[0].replace(CONST, "").parse().unwrap())), op_regs: Vec::new() });
+                        } else {
+                            oasm.deferred_operands_push(tokens[0], self.program.len());
+                            self.program.push(Opcode { op_type: OpcodeType::Jmp, op_operand: None, op_regs: Vec::new() });
+                        }
                     }
                     
                     HLT => {
