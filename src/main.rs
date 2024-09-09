@@ -5,7 +5,7 @@ mod oasm;
 mod opcode;
 mod error;
 
-use std::{env, fs::File, io::{Read, Write}, ops::{Add, Index}, process::exit};
+use std::{env, fs::File, io::{Read, Write}, ops::{Add, Deref, Index}, process::exit};
 use std::io::stdin;
 use serde::{Serialize, Deserialize};
 
@@ -35,6 +35,7 @@ pub struct OSVM {
     r15: Word,
     r16: Word,
     
+    tsr: Word,
     pc: Word,
 
     // Stack
@@ -68,6 +69,7 @@ impl OSVM {
             r15: Word::U64(0),
             r16: Word::U64(0),
             
+            tsr: Word::U64(0),
             pc: Word::U64(0),
             
             // Stack
@@ -201,11 +203,20 @@ impl OSVM {
             }
         }
     }
+
+    fn set_tsr(self: &mut Self, value: Word) {
+        match value {
+            Word::U64(_) => self.tsr = Word::U64(0),
+            Word::I64(_) => self.tsr = Word::U64(1),
+            Word::F64(_) => self.tsr = Word::U64(2),
+        }
+    }
     
     fn execute_opcode(self: &mut Self) -> Error {
         if self.pc.to_u64() as usize >= self.program.len() {
             return Error::InvalidOpcodeAccess;
         }
+        
         let opcode = self.program[self.pc.to_u64() as usize].clone();
         
         match opcode.op_type {
@@ -218,6 +229,7 @@ impl OSVM {
                     }
                     
                     let reg = *self.find_register(&opcode, 1).unwrap();
+                    self.set_tsr(reg);
                     self.assign_register(&opcode, 0, reg);
                 } else {
                     if opcode.op_regs.len() < 1 {
@@ -226,6 +238,7 @@ impl OSVM {
                         return Error::RegisterUnderflow;
                     }
                     
+                    self.set_tsr(opcode.op_operand.unwrap());
                     self.assign_register(&opcode, 0, opcode.op_operand.unwrap());
                 }
                 self.pc = Word::U64(self.pc.to_u64() + 1);
@@ -241,6 +254,7 @@ impl OSVM {
                     return Error::RegisterUnderflow;
                 }
                 
+                self.set_tsr(self.stack[self.stack.len() - 1]);
                 self.assign_register(&opcode, 0, self.stack[self.stack.len() - 1]);
                 self.pc = Word::U64(self.pc.to_u64() + 1);
             }
@@ -254,6 +268,7 @@ impl OSVM {
                 
                 let reg1 = *self.find_register(&opcode, 0).unwrap();
                 let reg2 = *self.find_register(&opcode, 1).unwrap();
+                self.set_tsr(reg1);
                 self.assign_register(&opcode, 0, reg2);
                 self.assign_register(&opcode, 1, reg1);
                 self.pc = Word::U64(self.pc.to_u64() + 1);
@@ -266,6 +281,7 @@ impl OSVM {
                     return Error::RegisterUnderflow;
                 }
                 
+                self.set_tsr(Word::U64(0));
                 self.assign_register(&opcode, 0, Word::U64(0));
                 self.pc = Word::U64(self.pc.to_u64() + 1);
             }
@@ -279,10 +295,29 @@ impl OSVM {
                 
                 let reg1 = *self.find_register(&opcode, 1).unwrap();
                 let reg2 = *self.find_register(&opcode, 2).unwrap();
-                let sum = reg1.to_u64() + reg2.to_u64();
+                self.set_tsr(reg1);
+                match self.tsr {
+                    Word::U64(0) => {
+                        let sum = reg1.to_u64() + reg2.to_u64();
                 
-                let dest = self.find_register(&opcode, 0).unwrap();
-                *dest = Word::U64(sum);
+                        let dest = self.find_register(&opcode, 0).unwrap();
+                        *dest = Word::U64(sum);
+                    }
+                    Word::U64(1) => {
+                        let sum = reg1.to_i64() + reg2.to_i64();
+                        
+                        let dest = self.find_register(&opcode, 0).unwrap();
+                        *dest = Word::I64(sum);
+                    }
+                    Word::U64(2) => {
+                        let sum = reg1.to_f64() + reg2.to_f64();
+                        
+                        let dest = self.find_register(&opcode, 0).unwrap();
+                        *dest = Word::F64(sum);
+                    }
+
+                    _ => {}
+                }
                 self.pc = Word::U64(self.pc.to_u64() + 1);
             }
             OpcodeType::Sub => {
@@ -294,10 +329,29 @@ impl OSVM {
                 
                 let reg1 = *self.find_register(&opcode, 1).unwrap();
                 let reg2 = *self.find_register(&opcode, 2).unwrap();
-                let sum = reg1.to_u64() - reg2.to_u64();
+                self.set_tsr(reg1);
+                match self.tsr {
+                    Word::U64(0) => {
+                        let sum = reg1.to_u64() - reg2.to_u64();
                 
-                let dest = self.find_register(&opcode, 0).unwrap();
-                *dest = Word::U64(sum);
+                        let dest = self.find_register(&opcode, 0).unwrap();
+                        *dest = Word::U64(sum);
+                    }
+                    Word::U64(1) => {
+                        let sum = reg1.to_i64() - reg2.to_i64();
+                        
+                        let dest = self.find_register(&opcode, 0).unwrap();
+                        *dest = Word::I64(sum);
+                    }
+                    Word::U64(2) => {
+                        let sum = reg1.to_f64() - reg2.to_f64();
+                        
+                        let dest = self.find_register(&opcode, 0).unwrap();
+                        *dest = Word::F64(sum);
+                    }
+
+                    _ => {}
+                }
                 self.pc = Word::U64(self.pc.to_u64() + 1);
             }
             OpcodeType::Mul => {
@@ -309,10 +363,29 @@ impl OSVM {
                 
                 let reg1 = *self.find_register(&opcode, 1).unwrap();
                 let reg2 = *self.find_register(&opcode, 2).unwrap();
-                let sum = reg1.to_u64() * reg2.to_u64();
+                self.set_tsr(reg1);
+                match self.tsr {
+                    Word::U64(0) => {
+                        let sum = reg1.to_u64() * reg2.to_u64();
                 
-                let dest = self.find_register(&opcode, 0).unwrap();
-                *dest = Word::U64(sum);
+                        let dest = self.find_register(&opcode, 0).unwrap();
+                        *dest = Word::U64(sum);
+                    }
+                    Word::U64(1) => {
+                        let sum = reg1.to_i64() * reg2.to_i64();
+                        
+                        let dest = self.find_register(&opcode, 0).unwrap();
+                        *dest = Word::I64(sum);
+                    }
+                    Word::U64(2) => {
+                        let sum = reg1.to_f64() * reg2.to_f64();
+                        
+                        let dest = self.find_register(&opcode, 0).unwrap();
+                        *dest = Word::F64(sum);
+                    }
+
+                    _ => {}
+                }
                 self.pc = Word::U64(self.pc.to_u64() + 1);
             }
             OpcodeType::Div => {
@@ -324,14 +397,41 @@ impl OSVM {
                 
                 let reg1 = *self.find_register(&opcode, 1).unwrap();
                 let reg2 = *self.find_register(&opcode, 2).unwrap();
-                if reg1.to_u64() == 0 || reg2.to_u64() == 0 {
-                    return Error::DivByZero;
+                self.set_tsr(reg1);
+                match self.tsr {
+                    Word::U64(0) => {
+                        if reg1.to_u64() == 0 || reg2.to_u64() == 0 {
+                            return Error::DivByZero;
+                        }
+
+                        let sum = reg1.to_u64() + reg2.to_u64();
+                
+                        let dest = self.find_register(&opcode, 0).unwrap();
+                        *dest = Word::U64(sum);
+                    }
+                    Word::U64(1) => {
+                        if reg1.to_i64() == 0 || reg2.to_i64() == 0 {
+                            return Error::DivByZero;
+                        }
+
+                        let sum = reg1.to_i64() + reg2.to_i64();
+                        
+                        let dest = self.find_register(&opcode, 0).unwrap();
+                        *dest = Word::I64(sum);
+                    }
+                    Word::U64(2) => {
+                        if reg1.to_f64() == 0.0 || reg2.to_f64() == 0.0 {
+                            return Error::DivByZero;
+                        }
+
+                        let sum = reg1.to_f64() + reg2.to_f64();
+                        
+                        let dest = self.find_register(&opcode, 0).unwrap();
+                        *dest = Word::F64(sum);
+                    }
+
+                    _ => {}
                 }
-                
-                let sum = reg1.to_u64() / reg2.to_u64();
-                
-                let dest = self.find_register(&opcode, 0).unwrap();
-                *dest = Word::U64(sum);
                 self.pc = Word::U64(self.pc.to_u64() + 1);
             }
             
@@ -342,8 +442,24 @@ impl OSVM {
                     return Error::RegisterOverflow;
                 }
                 
-                let reg1 = self.find_register(&opcode, 0).unwrap();
-                *reg1 = Word::U64(reg1.to_u64() - 1);
+                let reg1 = *self.find_register(&opcode, 0).unwrap();
+                self.set_tsr(reg1);
+                match self.tsr {
+                    Word::U64(0) => {
+                        let reg1 = self.find_register(&opcode, 0).unwrap();
+                        *reg1 = Word::U64(reg1.to_u64() - 1);
+                    }
+                    Word::U64(1) => {
+                        let reg1 = self.find_register(&opcode, 0).unwrap();
+                        *reg1 = Word::I64(reg1.to_i64() - 1);
+                    }
+                    Word::U64(2) => {
+                        let reg1 = self.find_register(&opcode, 0).unwrap();
+                        *reg1 = Word::F64(reg1.to_f64() - 1.0);
+                    }
+
+                    _ => {}
+                }
                 self.pc = Word::U64(self.pc.to_u64() + 1);
             }
             
@@ -356,10 +472,29 @@ impl OSVM {
                 
                 let reg1 = *self.find_register(&opcode, 1).unwrap();
                 let reg2 = *self.find_register(&opcode, 2).unwrap();
-                let sum = Word::U64((reg1.to_u64() == reg2.to_u64()) as u64);
-                
-                let dest = self.find_register(&opcode, 0).unwrap();
-                *dest = sum;
+                self.set_tsr(reg1);
+                match self.tsr {
+                    Word::U64(0) => {
+                        let sum = Word::U64((reg1.to_u64() == reg2.to_u64()) as u64);
+                        
+                        let dest = self.find_register(&opcode, 0).unwrap();
+                        *dest = sum;
+                    }
+                    Word::U64(1) => {
+                        let sum = Word::U64((reg1.to_i64() == reg2.to_i64()) as u64);
+                        
+                        let dest = self.find_register(&opcode, 0).unwrap();
+                        *dest = sum;
+                    }
+                    Word::U64(2) => {
+                        let sum = Word::U64((reg1.to_f64() == reg2.to_f64()) as u64);
+                        
+                        let dest = self.find_register(&opcode, 0).unwrap();
+                        *dest = sum;
+                    }
+
+                    _ => {}
+                }
                 self.pc = Word::U64(self.pc.to_u64() + 1);
             }
             
@@ -439,7 +574,14 @@ impl OSVM {
                 
                 let a = self.stack.pop().unwrap();
                 let b = self.stack.pop().unwrap();
-                self.stack.push(Word::U64(b.to_u64() + a.to_u64()));
+                self.set_tsr(b);
+                match self.tsr {
+                    Word::U64(0) => self.stack.push(Word::U64(b.to_u64() + a.to_u64())),
+                    Word::U64(1) => self.stack.push(Word::I64(b.to_i64() + a.to_i64())),
+                    Word::U64(2) => self.stack.push(Word::F64(b.to_f64() + a.to_f64())),
+
+                    _ => {}
+                }
                 self.pc = Word::U64(self.pc.to_u64() + 1);
             }
             OpcodeType::Subs => {
@@ -449,7 +591,14 @@ impl OSVM {
                 
                 let a = self.stack.pop().unwrap();
                 let b = self.stack.pop().unwrap();
-                self.stack.push(Word::U64(b.to_u64() - a.to_u64()));
+                self.set_tsr(b);
+                match self.tsr {
+                    Word::U64(0) => self.stack.push(Word::U64(b.to_u64() - a.to_u64())),
+                    Word::U64(1) => self.stack.push(Word::I64(b.to_i64() - a.to_i64())),
+                    Word::U64(2) => self.stack.push(Word::F64(b.to_f64() - a.to_f64())),
+
+                    _ => {}
+                }
                 self.pc = Word::U64(self.pc.to_u64() + 1);
             }
             OpcodeType::Muls => {
@@ -459,7 +608,14 @@ impl OSVM {
                 
                 let a = self.stack.pop().unwrap();
                 let b = self.stack.pop().unwrap();
-                self.stack.push(Word::U64(b.to_u64() * a.to_u64()));
+                self.set_tsr(b);
+                match self.tsr {
+                    Word::U64(0) => self.stack.push(Word::U64(b.to_u64() * a.to_u64())),
+                    Word::U64(1) => self.stack.push(Word::I64(b.to_i64() * a.to_i64())),
+                    Word::U64(2) => self.stack.push(Word::F64(b.to_f64() * a.to_f64())),
+
+                    _ => {}
+                }
                 self.pc = Word::U64(self.pc.to_u64() + 1);
             }
             OpcodeType::Divs => {
@@ -469,7 +625,14 @@ impl OSVM {
                 
                 let a = self.stack.pop().unwrap();
                 let b = self.stack.pop().unwrap();
-                self.stack.push(Word::U64(b.to_u64() / a.to_u64()));
+                self.set_tsr(b);
+                match self.tsr {
+                    Word::U64(0) => self.stack.push(Word::U64(b.to_u64() / a.to_u64())),
+                    Word::U64(1) => self.stack.push(Word::I64(b.to_i64() / a.to_i64())),
+                    Word::U64(2) => self.stack.push(Word::F64(b.to_f64() / a.to_f64())),
+
+                    _ => {}
+                }
                 self.pc = Word::U64(self.pc.to_u64() + 1);
             }
             
@@ -480,17 +643,20 @@ impl OSVM {
                 
                 let a = self.stack[self.stack.len() - 1];
                 let b = self.stack[self.stack.len() - 2];
-                self.stack.push(Word::U64((b.to_u64() == a.to_u64()) as u64));
+                self.set_tsr(b);
+                match self.tsr {
+                    Word::U64(0) => self.stack.push(Word::U64((b.to_u64() == a.to_u64()) as u64)),
+                    Word::U64(1) => self.stack.push(Word::U64((b.to_i64() == a.to_i64()) as u64)),
+                    Word::U64(2) => self.stack.push(Word::U64((b.to_f64() == a.to_f64()) as u64)),
+
+                    _ => {}
+                }
                 self.pc = Word::U64(self.pc.to_u64() + 1);
             }
             
             OpcodeType::Dupl => {
                 if self.stack.len() - opcode.op_operand.unwrap().to_u64() as usize <= 0 {
                     return Error::StackUnderflow;
-                }
-                
-                if opcode.op_operand.unwrap().to_u64() < 0 {
-                    return Error::InvalidOperand;
                 }
                 
                 self.stack.push(self.stack[self.stack.len() - 1 - opcode.op_operand.unwrap().to_u64() as usize]);
@@ -552,12 +718,12 @@ impl OSVM {
     }
     
     fn get_operands<'a>(self: &Self, tokens: Vec<&'a str>, len1: usize, len2: usize, line_num: &u64) -> Vec<&'a str> {
-        let mut operands: Vec<&str> = tokens[0].split(", ").collect();
+        let mut operands: Vec<&str> = tokens[0].trim().split(", ").collect();
         if operands.len() < len1 || operands.len() > len2 {
             eprintln!("[Error]: Invalid number of opcode arguments at line: {}", line_num);
             exit(1);
         }
-        
+
         operands
     }
     
@@ -595,8 +761,14 @@ impl OSVM {
                         
                         if operands[1].starts_with("r") {
                             self.program.push(Opcode { op_type: OpcodeType::Mov, op_operand: None, op_regs: vec![operands[0].to_string(), operands[1].to_string()] });
-                        } else if operands[1].starts_with("#") {
-                            self.program.push(Opcode { op_type: OpcodeType::Mov, op_operand: Some(Word::U64(operands[1].replace("#", "").parse().unwrap())), op_regs: vec![operands[0].to_string()] });
+                        } else if operands[1].starts_with(CONST) {
+                            if operands[1].replace(CONST, "").parse::<u64>().is_ok() {
+                                self.program.push(Opcode { op_type: OpcodeType::Mov, op_operand: Some(Word::U64(operands[1].replace(CONST, "").parse().unwrap())), op_regs: vec![operands[0].to_string()] });
+                            } else if operands[1].replace(CONST, "").parse::<i64>().is_ok() {
+                                self.program.push(Opcode { op_type: OpcodeType::Mov, op_operand: Some(Word::I64(operands[1].replace(CONST, "").parse().unwrap())), op_regs: vec![operands[0].to_string()] });
+                            } else if operands[1].replace(CONST, "").parse::<f64>().is_ok() {
+                                self.program.push(Opcode { op_type: OpcodeType::Mov, op_operand: Some(Word::F64(operands[1].replace(CONST, "").parse().unwrap())), op_regs: vec![operands[0].to_string()] });
+                            }
                         } else {
                             eprintln!("[Error]: Invalid operand `{}` at line: {}", operands[1], line_num);
                         }
@@ -614,7 +786,7 @@ impl OSVM {
                     CLR => {
                         let mut operands: Vec<&str> = self.get_operands(tokens.clone(), 1, 1, &line_num);
                         
-                        self.program.push(Opcode { op_type: OpcodeType::Clr, op_operand: Some(Word::U64(0)), op_regs: vec![tokens[0].to_string()] });
+                        self.program.push(Opcode { op_type: OpcodeType::Clr, op_operand: None, op_regs: vec![tokens[0].to_string()] });
                     }
                     
                     ADD | SUB | MUL | DIV => {
@@ -622,16 +794,16 @@ impl OSVM {
                         
                         match inst_name {
                             ADD => {
-                                self.program.push(Opcode { op_type: OpcodeType::Add, op_operand: Some(Word::U64(0)), op_regs: vec![operands[0].to_string(), operands[1].to_string(), operands[2].to_string()] });
+                                self.program.push(Opcode { op_type: OpcodeType::Add, op_operand: None, op_regs: vec![operands[0].to_string(), operands[1].to_string(), operands[2].to_string()] });
                             }
                             SUB => {
-                                self.program.push(Opcode { op_type: OpcodeType::Sub, op_operand: Some(Word::U64(0)), op_regs: vec![operands[0].to_string(), operands[1].to_string(), operands[2].to_string()] });
+                                self.program.push(Opcode { op_type: OpcodeType::Sub, op_operand: None, op_regs: vec![operands[0].to_string(), operands[1].to_string(), operands[2].to_string()] });
                             }
                             MUL => {
-                                self.program.push(Opcode { op_type: OpcodeType::Mul, op_operand: Some(Word::U64(0)), op_regs: vec![operands[0].to_string(), operands[1].to_string(), operands[2].to_string()] });
+                                self.program.push(Opcode { op_type: OpcodeType::Mul, op_operand: None, op_regs: vec![operands[0].to_string(), operands[1].to_string(), operands[2].to_string()] });
                             }
                             DIV => {
-                                self.program.push(Opcode { op_type: OpcodeType::Div, op_operand: Some(Word::U64(0)), op_regs: vec![operands[0].to_string(), operands[1].to_string(), operands[2].to_string()] });
+                                self.program.push(Opcode { op_type: OpcodeType::Div, op_operand: None, op_regs: vec![operands[0].to_string(), operands[1].to_string(), operands[2].to_string()] });
                             }
                     
                             _ => {}
@@ -639,11 +811,13 @@ impl OSVM {
                     }
                     
                     DEC => {
-                        self.program.push(Opcode { op_type: OpcodeType::Dec, op_operand: Some(Word::U64(0)), op_regs: vec![tokens[0].to_string()] });
+                        self.program.push(Opcode { op_type: OpcodeType::Dec, op_operand: None, op_regs: vec![tokens[0].to_string()] });
                     }
                     
                     EQUAL => {
-                        self.program.push(Opcode { op_type: OpcodeType::Equal, op_operand: Some(Word::U64(0)), op_regs: Vec::new() });
+                        let mut operands: Vec<&str> = self.get_operands(tokens.clone(), 3, 3, &line_num);
+                        
+                        self.program.push(Opcode { op_type: OpcodeType::Equal, op_operand: None, op_regs: vec![operands[0].to_string(), operands[1].to_string(), operands[2].to_string()] });
                     }
                     
                     JT | JZ | JNZ => {
@@ -652,13 +826,13 @@ impl OSVM {
                         if operands[0].starts_with('#') {
                             match inst_name {
                                 JT => {
-                                    self.program.push(Opcode { op_type: OpcodeType::Jt, op_operand: Some(Word::U64(operands[0].replace("#", "").parse().unwrap())), op_regs: vec![operands[1].to_string()] });
+                                    self.program.push(Opcode { op_type: OpcodeType::Jt, op_operand: Some(Word::U64(operands[0].replace(CONST, "").parse().unwrap())), op_regs: vec![operands[1].to_string()] });
                                 }
                                 JZ => {
-                                    self.program.push(Opcode { op_type: OpcodeType::Jz, op_operand: Some(Word::U64(operands[0].replace("#", "").parse().unwrap())), op_regs: vec![operands[1].to_string()] });
+                                    self.program.push(Opcode { op_type: OpcodeType::Jz, op_operand: Some(Word::U64(operands[0].replace(CONST, "").parse().unwrap())), op_regs: vec![operands[1].to_string()] });
                                 }
                                 JNZ => {
-                                    self.program.push(Opcode { op_type: OpcodeType::Jnz, op_operand: Some(Word::U64(operands[0].replace("#", "").parse().unwrap())), op_regs: vec![operands[1].to_string()] });
+                                    self.program.push(Opcode { op_type: OpcodeType::Jnz, op_operand: Some(Word::U64(operands[0].replace(CONST, "").parse().unwrap())), op_regs: vec![operands[1].to_string()] });
                                 }
                                 
                                 _ => {}
@@ -667,13 +841,13 @@ impl OSVM {
                             oasm.deferred_operands_push(operands[0], self.program.len());
                             match inst_name {
                                 JT => {
-                                    self.program.push(Opcode { op_type: OpcodeType::Jt, op_operand: Some(Word::U64(0)), op_regs: vec![operands[1].to_string()] });
+                                    self.program.push(Opcode { op_type: OpcodeType::Jt, op_operand: None, op_regs: vec![operands[1].to_string()] });
                                 }
                                 JZ => {
-                                    self.program.push(Opcode { op_type: OpcodeType::Jz, op_operand: Some(Word::U64(0)), op_regs: vec![operands[1].to_string()] });
+                                    self.program.push(Opcode { op_type: OpcodeType::Jz, op_operand: None, op_regs: vec![operands[1].to_string()] });
                                 }
                                 JNZ => {
-                                    self.program.push(Opcode { op_type: OpcodeType::Jnz, op_operand: Some(Word::U64(0)), op_regs: vec![operands[1].to_string()] });
+                                    self.program.push(Opcode { op_type: OpcodeType::Jnz, op_operand: None, op_regs: vec![operands[1].to_string()] });
                                 }
                                 
                                 _ => {}
@@ -686,28 +860,34 @@ impl OSVM {
                         if tokens[0].starts_with('r') {
                             self.program.push(Opcode { op_type: OpcodeType::Push, op_operand: None, op_regs: vec![tokens[0].to_string()] });
                         } else if tokens[0].starts_with('#') {
-                            self.program.push(Opcode { op_type: OpcodeType::Push, op_operand: Some(Word::U64(tokens[0].replace("#", "").parse().unwrap())), op_regs: Vec::new() });
+                            if tokens[0].replace(CONST, "").parse::<u64>().is_ok() {
+                                self.program.push(Opcode { op_type: OpcodeType::Push, op_operand: Some(Word::U64(tokens[0].replace(CONST, "").parse().unwrap())), op_regs: Vec::new() });
+                            } else if tokens[0].replace(CONST, "").parse::<i64>().is_ok() {
+                                self.program.push(Opcode { op_type: OpcodeType::Push, op_operand: Some(Word::I64(tokens[0].replace(CONST, "").parse().unwrap())), op_regs: Vec::new() });
+                            } else if tokens[0].replace(CONST, "").parse::<f64>().is_ok() {
+                                self.program.push(Opcode { op_type: OpcodeType::Push, op_operand: Some(Word::F64(tokens[0].replace(CONST, "").parse().unwrap())), op_regs: Vec::new() });
+                            }
                         } else {
                             eprintln!("[Error]: Invalid operand `{}` at line: {}", tokens[0], line_num);
                         }
                     }
                     POP => {
-                        self.program.push(Opcode { op_type: OpcodeType::Pop, op_operand: Some(Word::U64(0)), op_regs: Vec::new() });
+                        self.program.push(Opcode { op_type: OpcodeType::Pop, op_operand: None, op_regs: Vec::new() });
                     }
                     
                     ADDS | SUBS | MULS | DIVS => {
                         match inst_name {
                             ADDS => {
-                                self.program.push(Opcode { op_type: OpcodeType::Adds, op_operand: Some(Word::U64(0)), op_regs: Vec::new() });
+                                self.program.push(Opcode { op_type: OpcodeType::Adds, op_operand: None, op_regs: Vec::new() });
                             }
                             SUBS => {
-                                self.program.push(Opcode { op_type: OpcodeType::Subs, op_operand: Some(Word::U64(0)), op_regs: Vec::new() });
+                                self.program.push(Opcode { op_type: OpcodeType::Subs, op_operand: None, op_regs: Vec::new() });
                             }
                             MULS => {
-                                self.program.push(Opcode { op_type: OpcodeType::Muls, op_operand: Some(Word::U64(0)), op_regs: Vec::new() });
+                                self.program.push(Opcode { op_type: OpcodeType::Muls, op_operand: None, op_regs: Vec::new() });
                             }
                             DIVS => {
-                                self.program.push(Opcode { op_type: OpcodeType::Divs, op_operand: Some(Word::U64(0)), op_regs: Vec::new() });
+                                self.program.push(Opcode { op_type: OpcodeType::Divs, op_operand: None, op_regs: Vec::new() });
                             }
                             
                             _ => {}
@@ -720,20 +900,20 @@ impl OSVM {
                     }
                     
                     EQUALS => {
-                        self.program.push(Opcode { op_type: OpcodeType::Equals, op_operand: Some(Word::U64(0)), op_regs: Vec::new() });
+                        self.program.push(Opcode { op_type: OpcodeType::Equals, op_operand: None, op_regs: Vec::new() });
                     }
                     
                     JTS | JZS | JNZS => {
                         if tokens[0].starts_with('#') {
                             match inst_name {
                                 JTS => {
-                                    self.program.push(Opcode { op_type: OpcodeType::Jts, op_operand: Some(Word::U64(tokens[0].replace("#", "").parse().unwrap())), op_regs: Vec::new() });
+                                    self.program.push(Opcode { op_type: OpcodeType::Jts, op_operand: Some(Word::U64(tokens[0].replace(CONST, "").parse().unwrap())), op_regs: Vec::new() });
                                 }
                                 JZS => {
-                                    self.program.push(Opcode { op_type: OpcodeType::Jzs, op_operand: Some(Word::U64(tokens[0].replace("#", "").parse().unwrap())), op_regs: Vec::new() });
+                                    self.program.push(Opcode { op_type: OpcodeType::Jzs, op_operand: Some(Word::U64(tokens[0].replace(CONST, "").parse().unwrap())), op_regs: Vec::new() });
                                 }
                                 JNZS => {
-                                    self.program.push(Opcode { op_type: OpcodeType::Jnzs, op_operand: Some(Word::U64(tokens[0].replace("#", "").parse().unwrap())), op_regs: Vec::new() });
+                                    self.program.push(Opcode { op_type: OpcodeType::Jnzs, op_operand: Some(Word::U64(tokens[0].replace(CONST, "").parse().unwrap())), op_regs: Vec::new() });
                                 }
                                 
                                 _ => {}
@@ -742,13 +922,13 @@ impl OSVM {
                             oasm.deferred_operands_push(tokens[0], self.program.len());
                             match inst_name {
                                 JT => {
-                                    self.program.push(Opcode { op_type: OpcodeType::Jts, op_operand: Some(Word::U64(0)), op_regs: Vec::new() });
+                                    self.program.push(Opcode { op_type: OpcodeType::Jts, op_operand: None, op_regs: Vec::new() });
                                 }
                                 JZ => {
-                                    self.program.push(Opcode { op_type: OpcodeType::Jzs, op_operand: Some(Word::U64(0)), op_regs: Vec::new() });
+                                    self.program.push(Opcode { op_type: OpcodeType::Jzs, op_operand: None, op_regs: Vec::new() });
                                 }
                                 JNZ => {
-                                    self.program.push(Opcode { op_type: OpcodeType::Jnzs, op_operand: Some(Word::U64(0)), op_regs: Vec::new() });
+                                    self.program.push(Opcode { op_type: OpcodeType::Jnzs, op_operand: None, op_regs: Vec::new() });
                                 }
                                 
                                 _ => {}
@@ -759,11 +939,11 @@ impl OSVM {
                     // Universal opcodes
                     JMP => {
                         oasm.deferred_operands_push(tokens[0], self.program.len());
-                        self.program.push(Opcode { op_type: OpcodeType::Jmp, op_operand: Some(Word::U64(0)), op_regs: Vec::new() });
+                        self.program.push(Opcode { op_type: OpcodeType::Jmp, op_operand: None, op_regs: Vec::new() });
                     }
                     
                     HLT => {
-                        self.program.push(Opcode { op_type: OpcodeType::Hlt, op_operand: Some(Word::U64(0)), op_regs: Vec::new() });
+                        self.program.push(Opcode { op_type: OpcodeType::Hlt, op_operand: None, op_regs: Vec::new() });
                     }
                     
                     _ => {
@@ -802,29 +982,30 @@ impl OSVM {
     
     fn dump(self: &Self) {
         println!("\n[Registers]:");
-        println!("    r0:  {}", self.r0.to_u64());
-        println!("    r1:  {}", self.r1.to_u64());
-        println!("    r2:  {}", self.r2.to_u64());
-        println!("    r3:  {}", self.r3.to_u64());
-        println!("    r4:  {}", self.r4.to_u64());
-        println!("    r5:  {}", self.r5.to_u64());
-        println!("    r6:  {}", self.r6.to_u64());
-        println!("    r7:  {}", self.r7.to_u64());
-        println!("    r8:  {}", self.r8.to_u64());
-        println!("    r9:  {}", self.r9.to_u64());
-        println!("    r10: {}", self.r10.to_u64());
-        println!("    r11: {}", self.r11.to_u64());
-        println!("    r12: {}", self.r12.to_u64());
-        println!("    r13: {}", self.r13.to_u64());
-        println!("    r14: {}", self.r14.to_u64());
-        println!("    r15: {}", self.r15.to_u64());
-        println!("    r16: {}", self.r16.to_u64());
+        println!("    r0:  {:?}", self.r0);
+        println!("    r1:  {:?}", self.r1);
+        println!("    r2:  {:?}", self.r2);
+        println!("    r3:  {:?}", self.r3);
+        println!("    r4:  {:?}", self.r4);
+        println!("    r5:  {:?}", self.r5);
+        println!("    r6:  {:?}", self.r6);
+        println!("    r7:  {:?}", self.r7);
+        println!("    r8:  {:?}", self.r8);
+        println!("    r9:  {:?}", self.r9);
+        println!("    r10: {:?}", self.r10);
+        println!("    r11: {:?}", self.r11);
+        println!("    r12: {:?}", self.r12);
+        println!("    r13: {:?}", self.r13);
+        println!("    r14: {:?}", self.r14);
+        println!("    r15: {:?}", self.r15);
+        println!("    r16: {:?}", self.r16);
+        println!("    tsr: {}", self.tsr.to_u64());
         println!("    pc:  {}", self.pc.to_u64());
         
         if self.stack.len() > 0 {
             println!("[Stack]:");
             for i in self.stack.clone() {
-                println!("    {}", i.to_u64());
+                println!("    {:?}", i);
             }
         }
     }

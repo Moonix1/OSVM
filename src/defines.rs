@@ -49,6 +49,9 @@ pub const R14: &str = "r14";
 pub const R15: &str = "r15";
 pub const R16: &str = "r16";
 
+// Special Characters
+pub const CONST: &str = "#";
+
 // Opcode Names
 
 // Register opcodes
