@@ -47,9 +47,11 @@ pub enum OpcodeType {
     
     // Universal opcode
     Jmp,
+    Call,
     
     Pop,
     
+    Ret,
     Hlt,
     
     // Deprecated

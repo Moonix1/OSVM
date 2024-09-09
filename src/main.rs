@@ -36,6 +36,7 @@ pub struct OSVM {
     r16: Word,
     
     tsr: usize,
+    rspc: usize,
     pc: usize,
 
     // Stack
@@ -70,6 +71,7 @@ impl OSVM {
             r16: Word::U64(0),
             
             tsr: 0,
+            rspc: 0,
             pc: 0,
             
             // Stack
@@ -719,6 +721,10 @@ impl OSVM {
             OpcodeType::Jmp => {
                 self.pc = opcode.op_operand.unwrap().to_usize();
             }
+            OpcodeType::Call => {
+                self.rspc = self.pc + 1;
+                self.pc = opcode.op_operand.unwrap().to_usize();
+            }
             
             OpcodeType::Pop => {
                 if opcode.op_regs.is_empty() {
@@ -740,6 +746,9 @@ impl OSVM {
                 self.pc += 1
             }
             
+            OpcodeType::Ret => {
+                self.pc = self.rspc;
+            }
             OpcodeType::Hlt => {
                 self.halt = true;
             }
@@ -1006,12 +1015,21 @@ impl OSVM {
                         }
                     }
                     
+                    CALL => {
+                        oasm.deferred_operands_push(tokens[0], self.program.len());
+                        self.program.push(Opcode { op_type: OpcodeType::Call, op_operand: None, op_regs: Vec::new() });
+                    }
+                    
                     POP => {
                         if tokens.len() > 0 && tokens[0].starts_with('r') {
                             self.program.push(Opcode { op_type: OpcodeType::Pop, op_operand: None, op_regs: vec![tokens[0].to_string()] });
                         } else {
                             self.program.push(Opcode { op_type: OpcodeType::Pop, op_operand: None, op_regs: Vec::new() });
                         }
+                    }
+                    
+                    RET => {
+                        self.program.push(Opcode { op_type: OpcodeType::Ret, op_operand: None, op_regs: Vec::new() });
                     }
                     
                     HLT => {
@@ -1072,6 +1090,7 @@ impl OSVM {
         println!("    r15: {:?}", self.r15);
         println!("    r16: {:?}", self.r16);
         println!("    tsr: {}", self.tsr);
+        println!("    tsr: {}", self.rspc);
         println!("    pc:  {}", self.pc);
         
         if self.stack.len() > 0 {

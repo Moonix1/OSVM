@@ -98,6 +98,8 @@ pub const SWC: &str = "swc";
 
 // Universal opcode
 pub const JMP: &str = "jmp";
+pub const CALL: &str = "call";
+pub const RET: &str = "ret";
 pub const HLT: &str = "hlt";
 
 // Deprecated
