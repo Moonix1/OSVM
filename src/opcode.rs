@@ -29,7 +29,6 @@ pub enum OpcodeType {
     
     // Stack opcodes
     Push,
-    Pop,
     
     Dupl,
     
@@ -46,6 +45,8 @@ pub enum OpcodeType {
     
     // Universal opcode
     Jmp,
+    
+    Pop,
     
     Hlt,
     

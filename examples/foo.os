@@ -16,10 +16,10 @@ _start:
     subs
     
     ; Clears the values on the registers
-    clr r0
-    clr r1
-    clr r2
-    clr r3
+    pop r0
+    pop r1
+    pop r2
+    pop r3
     
     ; Obviously halts/ends the program
     hlt

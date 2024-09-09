@@ -269,18 +269,6 @@ impl OSVM {
                 self.assign_register(&opcode, 1, reg1);
                 self.pc = Word::U64(self.pc.to_u64() + 1);
             }
-            
-            OpcodeType::Clr => {
-                if opcode.op_regs.len() < 1 {
-                    return Error::RegisterOverflow;
-                } else if opcode.op_regs.len() > 1 {
-                    return Error::RegisterUnderflow;
-                }
-                
-                self.set_tsr(Word::U64(0));
-                self.assign_register(&opcode, 0, Word::U64(0));
-                self.pc = Word::U64(self.pc.to_u64() + 1);
-            }
 
             OpcodeType::Add => {
                 if opcode.op_regs.len() < 1 {
@@ -581,15 +569,6 @@ impl OSVM {
                 self.pc = Word::U64(self.pc.to_u64() + 1);
             }
             
-            OpcodeType::Pop => {
-                if self.stack.len() < 1 {
-                    return Error::StackUnderflow;
-                }
-                
-                self.stack.pop();
-                self.pc = Word::U64(self.pc.to_u64() + 1);
-            }
-            
             OpcodeType::Adds => {
                 if self.stack.len() < 2 {
                     return Error::StackUnderflow;
@@ -726,6 +705,26 @@ impl OSVM {
             // Universal opcodes
             OpcodeType::Jmp => {
                 self.pc = opcode.op_operand.unwrap();
+            }
+            
+            OpcodeType::Pop => {
+                if opcode.op_regs.is_empty() {
+                    if self.stack.len() < 1 {
+                        return Error::StackUnderflow;
+                    }
+                    
+                    self.stack.pop();
+                } else {
+                    if opcode.op_regs.len() < 1 {
+                        return Error::RegisterOverflow;
+                    } else if opcode.op_regs.len() > 1 {
+                        return Error::RegisterUnderflow;
+                    }
+                    
+                    self.set_tsr(Word::U64(0));
+                    self.assign_register(&opcode, 0, Word::U64(0));
+                }
+                self.pc = Word::U64(self.pc.to_u64() + 1);
             }
             
             OpcodeType::Hlt => {
@@ -917,9 +916,6 @@ impl OSVM {
                             eprintln!("[Error]: Invalid operand `{}` at line: {}", tokens[0], line_num);
                         }
                     }
-                    POP => {
-                        self.program.push(Opcode { op_type: OpcodeType::Pop, op_operand: None, op_regs: Vec::new() });
-                    }
                     
                     ADDS | SUBS | MULS | DIVS => {
                         match inst_name {
@@ -989,6 +985,15 @@ impl OSVM {
                         } else {
                             oasm.deferred_operands_push(tokens[0], self.program.len());
                             self.program.push(Opcode { op_type: OpcodeType::Jmp, op_operand: None, op_regs: Vec::new() });
+                        }
+                    }
+                    
+                    POP => {
+                        if tokens.len() > 0 && tokens[0].starts_with('r') {
+                            self.program.push(Opcode { op_type: OpcodeType::Pop, op_operand: None, op_regs: vec![tokens[0].to_string()] });
+                        } else {
+                            self.program.push(Opcode { op_type: OpcodeType::Pop, op_operand: None, op_regs: Vec::new() });
+                            
                         }
                     }
                     
