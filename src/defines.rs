@@ -83,6 +83,8 @@ pub const JTS: &str = "jts";
 pub const JZS: &str = "jzs";
 pub const JNZS: &str = "jzs";
 
+pub const SWC: &str = "swc";
+
 // Universal opcode
 pub const JMP: &str = "jmp";
 pub const HLT: &str = "hlt";

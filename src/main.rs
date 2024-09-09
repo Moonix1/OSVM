@@ -702,6 +702,19 @@ impl OSVM {
                 }
             }
             
+            OpcodeType::Swc => {
+                if self.stack.len() < 2 {
+                    return Error::StackUnderflow;
+                }
+                
+                let a = self.stack.len() - 1;
+                let b = self.stack.len() - 1 - opcode.op_operand.unwrap().to_u64() as usize;
+                let old = self.stack[a];
+                self.stack[a] = self.stack[b];
+                self.stack[b] = old;
+                self.pc = Word::U64(self.pc.to_u64() + 1);
+            }
+            
             // Universal opcodes
             OpcodeType::Jmp => {
                 self.pc = opcode.op_operand.unwrap();
@@ -976,6 +989,11 @@ impl OSVM {
                                 _ => {}
                             }
                         }
+                    }
+                    
+                    SWC => {
+                        let op: i64 = tokens[0].parse().unwrap();
+                        self.program.push(Opcode { op_type: OpcodeType::Swc, op_operand: Some(Word::U64(op as u64)), op_regs: Vec::new() });
                     }
                     
                     // Universal opcodes

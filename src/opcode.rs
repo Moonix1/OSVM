@@ -43,6 +43,8 @@ pub enum OpcodeType {
     Jzs,
     Jnzs,
     
+    Swc,
+    
     // Universal opcode
     Jmp,
     
