@@ -748,6 +748,7 @@ impl OSVM {
             
             OpcodeType::Ret => {
                 self.pc = self.rspc;
+                self.rspc = 0;
             }
             OpcodeType::Hlt => {
                 self.halt = true;
@@ -1090,7 +1091,7 @@ impl OSVM {
         println!("    r15: {:?}", self.r15);
         println!("    r16: {:?}", self.r16);
         println!("    tsr: {}", self.tsr);
-        println!("    tsr: {}", self.rspc);
+        println!("    rspc: {}", self.rspc);
         println!("    pc:  {}", self.pc);
         
         if self.stack.len() > 0 {
