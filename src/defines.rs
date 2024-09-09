@@ -8,24 +8,35 @@ pub enum Word {
 }
 
 impl Word {
+    pub fn to_usize(&self) -> usize {
+        match self {
+            Word::U64(value) => *value as usize,
+            Word::I64(value) => Word::U64(*value as u64).to_usize(),
+            Word::F64(value) => Word::U64(*value as u64).to_usize(),
+        }
+    }
+    
     pub fn to_u64(&self) -> u64 {
         match self {
             Word::U64(value) => *value,
-            _ => 0,
+            Word::I64(value) => Word::U64(*value as u64).to_u64(),
+            Word::F64(value) => Word::U64(*value as u64).to_u64(),
         }
     }
 
     pub fn to_i64(&self) -> i64 {
         match self {
             Word::I64(value) => *value,
-            _ => 0,
+            Word::U64(value) => Word::I64(*value as i64).to_i64(),
+            Word::F64(value) => Word::I64(*value as i64).to_i64(),
         }
     }
 
     pub fn to_f64(&self) -> f64 {
         match self {
             Word::F64(value) => *value,
-            _ => 0.0,
+            Word::I64(value) => Word::F64(*value as f64).to_f64(),
+            Word::U64(value) => Word::F64(*value as f64).to_f64(),
         }
     }
 }
