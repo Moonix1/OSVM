@@ -19,6 +19,7 @@ pub enum OpcodeType {
     Div,
     
     Dec,
+    Inc,
     
     Equal,
     

@@ -8,4 +8,5 @@ _start:
     push r1
     
     mov r16, $0
+    inc r16
     hlt

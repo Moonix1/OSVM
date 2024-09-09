@@ -458,6 +458,33 @@ impl OSVM {
                 }
                 self.pc = Word::U64(self.pc.to_u64() + 1);
             }
+            OpcodeType::Inc => {
+                if opcode.op_regs.len() < 1 {
+                    return Error::RegisterUnderflow;
+                } else if opcode.op_regs.len() > 1 {
+                    return Error::RegisterOverflow;
+                }
+                
+                let reg1 = *self.find_register(&opcode, 0).unwrap();
+                self.set_tsr(reg1);
+                match self.tsr {
+                    Word::U64(0) => {
+                        let reg1 = self.find_register(&opcode, 0).unwrap();
+                        *reg1 = Word::U64(reg1.to_u64() + 1);
+                    }
+                    Word::U64(1) => {
+                        let reg1 = self.find_register(&opcode, 0).unwrap();
+                        *reg1 = Word::I64(reg1.to_i64() + 1);
+                    }
+                    Word::U64(2) => {
+                        let reg1 = self.find_register(&opcode, 0).unwrap();
+                        *reg1 = Word::F64(reg1.to_f64() + 1.0);
+                    }
+
+                    _ => {}
+                }
+                self.pc = Word::U64(self.pc.to_u64() + 1);
+            }
             
             OpcodeType::Equal => {
                 if opcode.op_regs.len() < 1 {
@@ -828,6 +855,9 @@ impl OSVM {
                     
                     DEC => {
                         self.program.push(Opcode { op_type: OpcodeType::Dec, op_operand: None, op_regs: vec![tokens[0].to_string()] });
+                    }
+                    INC => {
+                        self.program.push(Opcode { op_type: OpcodeType::Inc, op_operand: None, op_regs: vec![tokens[0].to_string()] });
                     }
                     
                     EQUAL => {

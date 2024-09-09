@@ -64,6 +64,7 @@ pub const SUB: &str = "sub";
 pub const MUL: &str = "mul";
 pub const DIV: &str = "div";
 pub const DEC: &str = "dec";
+pub const INC: &str = "inc";
 pub const EQUAL: &str = "eq";
 pub const JT: &str = "jt";
 pub const JZ: &str = "jz";
