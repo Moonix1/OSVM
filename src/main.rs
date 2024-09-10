@@ -5,16 +5,16 @@ mod oasm;
 mod opcode;
 mod error;
 
-use std::{env, fs::File, io::{Read, Write}, ops::{Add, Deref, Index}, process::exit};
+use std::{env, ffi::{c_void, CString}, fs::File, io::{Read, Write}, ops::{Add, Deref, Index}, process::exit};
 use std::io::stdin;
-use serde::{Serialize, Deserialize};
+use std::mem;
+use libc::{fclose, ferror, fopen, fread, fseek, ftell, fwrite, SEEK_END, SEEK_SET};
 
 use defines::*;
 use oasm::*;
 use opcode::*;
 use error::*;
 
-#[derive(Serialize, Deserialize)]
 pub struct OSVM {
     // Registers
     r0: Word,
@@ -209,8 +209,8 @@ impl OSVM {
     fn set_tsr(self: &mut Self, value: Word) {
         match value {
             Word::U64(_) => self.tsr = 0,
-            Word::I64(_) => self.tsr = 0,
-            Word::F64(_) => self.tsr = 0,
+            Word::I64(_) => self.tsr = 1,
+            Word::F64(_) => self.tsr = 2,
         }
     }
     
@@ -1056,18 +1056,64 @@ impl OSVM {
     }
     
     fn load_program_from_file(self: &mut Self, file_path: &str) {
-        let mut file: File = File::open(file_path).unwrap();
-        let mut encoded: Vec<u8> = Vec::new();
-        let _ = file.read_to_end(&mut encoded);
-
-        let data: Vec<Opcode> = bincode::deserialize(&encoded).unwrap();
-        self.program = data;
+        unsafe {
+            let file_name = CString::new(file_path).unwrap();
+            let file_mode = CString::new("rb").unwrap();
+            let file = fopen(file_name.as_ptr(), file_mode.as_ptr());
+            if file.is_null() {
+                eprintln!("[Error]: Could not open file `{}`", file_path);
+                exit(1);
+            }
+            
+            if fseek(file, 0, SEEK_END) < 0 {
+                eprintln!("[Error]: Could not read file `{}`", file_path);
+                exit(1);
+            }
+            
+            let m = ftell(file);
+            if m < 0 {
+                eprintln!("[Error]: Could not read file `{}`", file_path);
+                exit(1);
+            }
+            
+            assert!(m as usize % mem::size_of::<Opcode>() == 0);
+            
+            if fseek(file, 0, SEEK_SET) < 0 {
+                eprintln!("[Error]: Could not read file `{}`", file_path);
+                exit(1);
+            }
+            
+            self.program.set_len(fread(self.program.as_ptr() as *mut c_void, mem::size_of::<Opcode>(),
+                m as usize / mem::size_of::<Opcode>(), file));
+            
+            if ferror(file) != 0 {
+                eprintln!("[Error]: Could not read file `{}`", file_path);
+                exit(1);
+            }
+            
+            fclose(file);
+        }
     }
 
     fn save_program_to_file(self: &Self, file_path: &str) {
-        let mut file: File = File::create(file_path).unwrap();
-        let encoded: Vec<u8> = bincode::serialize(&self.program).unwrap();
-        let _ = file.write_all(&encoded);
+        unsafe {
+            let file_name = CString::new(file_path).unwrap();
+            let file_mode = CString::new("wb").unwrap();
+            let file = fopen(file_name.as_ptr(), file_mode.as_ptr());
+            if file.is_null() {
+                eprintln!("[Error]: Could not open file `{}`", file_path);
+                exit(1);
+            }
+            
+            fwrite(self.program.as_ptr() as *const c_void, mem::size_of::<Opcode>(), self.program.len(), file);
+        
+            if ferror(file) != 0 {
+                eprintln!("[Error]: Could not write to file `{}`", file_path);
+                exit(1);
+            }
+            
+            fclose(file);
+        }
     }
     
     
@@ -1106,8 +1152,8 @@ impl OSVM {
         while !self.halt {
             let err: Error = self.execute_opcode();
             if debug {
-                let mut buffer = [0; 1];
-                let _ = stdin().read_exact(&mut buffer);
+                let mut buffer = String::new();
+                let _ = stdin().read_line(&mut buffer);
                 self.dump();
             }
             if err != Error::None {
@@ -1157,7 +1203,7 @@ fn main() {
     let subcommand = shift(&mut index, &args);
     
     match subcommand.as_str() {
-        "build" | "run" => {
+        "build" | "run" | "debug" => {
             println!("----------- Compiling -----------");
             let input_path = shift(&mut index, &args);
             let output_path = shift(&mut index, &args);
@@ -1169,14 +1215,11 @@ fn main() {
                 println!("------------ Running ------------");
                 osvm.load_program_from_file(&output_path);
                 osvm.execute_program(false);
+            } else if subcommand == "debug" {
+                println!("------ Running (Debugging) ------");
+                osvm.load_program_from_file(&output_path);
+                osvm.execute_program(true);
             }
-        }
-        
-        "debug" => {
-            println!("------ Running (Debugging) ------");
-            let output_path = shift(&mut index, &args);
-            osvm.load_program_from_file(&output_path);
-            osvm.execute_program(true);
         }
         
         _ => {

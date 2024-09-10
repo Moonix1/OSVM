@@ -1,7 +1,6 @@
 use crate::defines::*;
-use serde::{Serialize, Deserialize};
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy)]
 pub enum OpcodeType {
     Nop,
     
@@ -58,7 +57,8 @@ pub enum OpcodeType {
     Phsr,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[repr(C)]
+#[derive(Debug, Clone)]
 pub struct Opcode {
     pub op_type: OpcodeType,
     pub op_operand: Option<Word>,

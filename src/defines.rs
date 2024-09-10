@@ -1,18 +1,23 @@
-use serde::{Deserialize, Serialize};
+use std::{ffi::c_void, process::exit};
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Word {
     U64(u64),
     I64(i64),
     F64(f64),
 }
-
 impl Word {
     pub fn to_usize(&self) -> usize {
         match self {
             Word::U64(value) => *value as usize,
             Word::I64(value) => Word::U64(*value as u64).to_usize(),
             Word::F64(value) => Word::U64(*value as u64).to_usize(),
+            _ => {
+                eprintln!("[Error]: Unable to convert value to usize!");
+                exit(1);
+                
+                return 0;
+            }
         }
     }
     
@@ -21,6 +26,12 @@ impl Word {
             Word::U64(value) => *value,
             Word::I64(value) => Word::U64(*value as u64).to_u64(),
             Word::F64(value) => Word::U64(*value as u64).to_u64(),
+            _ => {
+                eprintln!("[Error]: Unable to convert value to u64!");
+                exit(1);
+                
+                return 0;
+            }
         }
     }
 
@@ -29,6 +40,12 @@ impl Word {
             Word::I64(value) => *value,
             Word::U64(value) => Word::I64(*value as i64).to_i64(),
             Word::F64(value) => Word::I64(*value as i64).to_i64(),
+            _ => {
+                eprintln!("[Error]: Unable to convert value to i64!");
+                exit(1);
+                
+                return 0;
+            }
         }
     }
 
@@ -37,6 +54,12 @@ impl Word {
             Word::F64(value) => *value,
             Word::I64(value) => Word::F64(*value as f64).to_f64(),
             Word::U64(value) => Word::F64(*value as f64).to_f64(),
+            _ => {
+                eprintln!("[Error]: Unable to convert value to f64!");
+                exit(1);
+                
+                return 0.0;
+            }
         }
     }
 }
