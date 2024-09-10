@@ -57,6 +57,7 @@ pub const EQUAL: &str = "eq";
 pub const JT: &str = "jt";
 pub const JZ: &str = "jz";
 pub const JNZ: &str = "jnz";
+pub const SYSF: &str = "sysf";
 
 // Stack opcodes
 pub const PUSH: &str = "push";
@@ -72,6 +73,7 @@ pub const JZS: &str = "jzs";
 pub const JNZS: &str = "jzs";
 
 pub const SWC: &str = "swc";
+
 
 // Universal opcode
 pub const JMP: &str = "jmp";

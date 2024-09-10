@@ -5,10 +5,10 @@ mod oasm;
 mod opcode;
 mod error;
 
-use std::{env, ffi::{c_void, CString}, fs::File, io::{Read, Write}, ops::{Add, Deref, Index}, process::exit};
+use std::{alloc::alloc, env, ffi::{c_void, CString}, fs::File, io::{Read, Write}, ops::{Add, Deref, Index}, process::exit};
 use std::io::stdin;
 use std::mem;
-use libc::{fclose, ferror, fopen, fread, fseek, ftell, fwrite, SEEK_END, SEEK_SET};
+use libc::{fclose, ferror, fopen, fread, free, fseek, ftell, fwrite, malloc, SEEK_END, SEEK_SET};
 
 use defines::*;
 use oasm::*;
@@ -205,7 +205,7 @@ impl OSVM {
             }
         }
     }
-
+    
     fn set_tsr(self: &mut Self, value: Word) {
         match value {
             Word { as_u64: _ } => self.tsr = 0,
@@ -580,6 +580,34 @@ impl OSVM {
                 }
             }
             
+            OpcodeType::Sysf => {
+                unsafe {
+                    if self.r7.as_u64 == 0 {
+                        return Error::InvalidSysFunction;
+                    }
+                    
+                    match self.r7.as_u64 {
+                        1 => {
+                            if opcode.op_regs.is_empty() {
+                                self.alloc(&opcode, Vec::new());
+                            } else {
+                                self.alloc(&opcode.clone(), opcode.op_regs);
+                            }
+                        }
+                        2 => {
+                            if opcode.op_regs.is_empty() {
+                                self.free(&opcode, Vec::new());
+                            } else {
+                                self.free(&opcode.clone(), opcode.op_regs);
+                            }
+                        }
+                        
+                        _ => {}
+                    }
+                }
+                self.pc += 1;
+            }
+            
             // Stack opcodes
             OpcodeType::Push => {
                 match opcode.op_operand {
@@ -627,7 +655,6 @@ impl OSVM {
                 
                 let a = self.stack.pop().unwrap();
                 let b = self.stack.pop().unwrap();
-                println!("{:?}", a);
                 self.set_tsr(b);
                 unsafe {
                     match self.tsr {
@@ -979,6 +1006,15 @@ impl OSVM {
                         }
                     }
                     
+                    SYSF => {
+                        if tokens.is_empty() {
+                            self.program.push(Opcode { op_type: OpcodeType::Sysf, op_operand: None, op_regs: Vec::new() });
+                        } else {
+                            let operands = self.get_operands(tokens, 1, 1, &line_num);
+                            self.program.push(Opcode { op_type: OpcodeType::Sysf, op_operand: None, op_regs: vec![operands[0].to_string()] });
+                        }
+                    }
+                    
                     // Stack opcodes
                     PUSH => {
                         if tokens[0].starts_with('r') {
@@ -1172,6 +1208,41 @@ impl OSVM {
         }
     }
     
+    fn alloc(self: &mut Self, opcode: &Opcode, reg: Vec<String>) -> Error {
+        unsafe {
+            if reg.is_empty() {
+                if self.stack.len() < 1 {
+                    return Error::StackUnderflow;
+                }
+                
+                let a = self.stack.len() - 1;
+                self.stack[a].as_ptr = malloc(self.stack[a].as_usize);
+            } else {
+                let reg1 = &self.find_register(opcode, 0).unwrap();
+                self.find_register(opcode, 0).unwrap().as_ptr = malloc(reg1.as_usize);
+            }
+        }
+        
+        return Error::None;
+    }
+    
+    fn free(self: &mut Self, opcode: &Opcode, reg: Vec<String>) -> Error {
+        unsafe {
+            if reg.is_empty() {
+                if self.stack.len() < 1 {
+                    return Error::StackUnderflow;
+                }
+                
+                let a = self.stack.len() - 1;
+                free(self.stack.pop().unwrap().as_ptr as *mut c_void);
+            } else {
+                free(self.find_register(opcode, 0).unwrap().as_ptr as *mut c_void);
+                self.find_register(opcode, 0).unwrap().as_usize = 0;
+            }
+        }
+        
+        return Error::None;
+    }
     
     fn dump(self: &Self) {
         println!("\n[Registers]:");

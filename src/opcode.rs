@@ -26,6 +26,8 @@ pub enum OpcodeType {
     Jz,
     Jnz,
     
+    Sysf,
+    
     // Stack opcodes
     Push,
     

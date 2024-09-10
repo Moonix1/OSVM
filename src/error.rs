@@ -11,6 +11,7 @@ pub enum Error {
     InvalidOperand,
     InvalidRegister,
     InvalidSection,
+    InvalidSysFunction,
     
     DivByZero,
 }
@@ -29,6 +30,7 @@ impl Error {
             Error::InvalidOperand => return "InvalidOperand".to_string(),
             Error::InvalidRegister => return "InvalidRegister".to_string(),
             Error::InvalidSection => return "InvalidSection".to_string(),
+            Error::InvalidSysFunction => return "InvalidSysFunction".to_string(),
             
             Error::DivByZero => return "DivByZero".to_string(),
         }
