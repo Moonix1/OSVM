@@ -70,7 +70,7 @@ impl Opcode {
     pub fn init() -> Opcode {
         Opcode {
             op_type: OpcodeType::Nop,
-            op_operand: Some(Word::U64(0)),
+            op_operand: Some(Word { as_u64: 0 }),
             op_regs: Vec::new(),
         }
     }

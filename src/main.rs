@@ -52,23 +52,23 @@ impl OSVM {
     fn init() -> OSVM {
         OSVM {
             // Registers
-            r0: Word::U64(0),
-            r1: Word::U64(0),
-            r2: Word::U64(0),
-            r3: Word::U64(0),
-            r4: Word::U64(0),
-            r5: Word::U64(0),
-            r6: Word::U64(0),
-            r7: Word::U64(0),
-            r8: Word::U64(0),
-            r9: Word::U64(0),
-            r10: Word::U64(0),
-            r11: Word::U64(0),
-            r12: Word::U64(0),
-            r13: Word::U64(0),
-            r14: Word::U64(0),
-            r15: Word::U64(0),
-            r16: Word::U64(0),
+            r0: Word { as_u64: 0 },
+            r1: Word { as_u64: 0 },
+            r2: Word { as_u64: 0 },
+            r3: Word { as_u64: 0 },
+            r4: Word { as_u64: 0 },
+            r5: Word { as_u64: 0 },
+            r6: Word { as_u64: 0 },
+            r7: Word { as_u64: 0 },
+            r8: Word { as_u64: 0 },
+            r9: Word { as_u64: 0 },
+            r10: Word { as_u64: 0 },
+            r11: Word { as_u64: 0 },
+            r12: Word { as_u64: 0 },
+            r13: Word { as_u64: 0 },
+            r14: Word { as_u64: 0 },
+            r15: Word { as_u64: 0 },
+            r16: Word { as_u64: 0 },
             
             tsr: 0,
             rspc: 0,
@@ -208,9 +208,9 @@ impl OSVM {
 
     fn set_tsr(self: &mut Self, value: Word) {
         match value {
-            Word::U64(_) => self.tsr = 0,
-            Word::I64(_) => self.tsr = 1,
-            Word::F64(_) => self.tsr = 2,
+            Word { as_u64: _ } => self.tsr = 0,
+            Word { as_i64: _ } => self.tsr = 1,
+            Word { as_f64: _ } => self.tsr = 2,
         }
     }
     
@@ -223,25 +223,28 @@ impl OSVM {
         
         match opcode.op_type {
             OpcodeType::Mov => {
-                if opcode.op_operand == None {
-                    if opcode.op_regs.len() < 1 {
-                        return Error::RegisterOverflow;
-                    } else if opcode.op_regs.len() > 2 {
-                        return Error::RegisterUnderflow;
+                match opcode.op_operand {
+                    None => {
+                        if opcode.op_regs.len() < 1 {
+                            return Error::RegisterOverflow;
+                        } else if opcode.op_regs.len() > 2 {
+                            return Error::RegisterUnderflow;
+                        }
+                        
+                        let reg = *self.find_register(&opcode, 1).unwrap();
+                        self.set_tsr(reg);
+                        self.assign_register(&opcode, 0, reg);
                     }
+                    _ => {
+                        if opcode.op_regs.len() < 1 {
+                            return Error::RegisterOverflow;
+                        } else if opcode.op_regs.len() > 1 {
+                            return Error::RegisterUnderflow;
+                        }
                     
-                    let reg = *self.find_register(&opcode, 1).unwrap();
-                    self.set_tsr(reg);
-                    self.assign_register(&opcode, 0, reg);
-                } else {
-                    if opcode.op_regs.len() < 1 {
-                        return Error::RegisterOverflow;
-                    } else if opcode.op_regs.len() > 1 {
-                        return Error::RegisterUnderflow;
+                        self.set_tsr(opcode.op_operand.unwrap());
+                        self.assign_register(&opcode, 0, opcode.op_operand.unwrap());
                     }
-                    
-                    self.set_tsr(opcode.op_operand.unwrap());
-                    self.assign_register(&opcode, 0, opcode.op_operand.unwrap());
                 }
                 self.pc += 1
             }
@@ -252,8 +255,11 @@ impl OSVM {
                     return Error::RegisterUnderflow;
                 }
                 
-                self.set_tsr(self.stack[self.stack.len() - 1 - opcode.op_operand.unwrap().to_usize()]);
-                self.assign_register(&opcode, 0, self.stack[self.stack.len() - 1 - opcode.op_operand.unwrap().to_usize()]);
+                unsafe {
+                    self.set_tsr(self.stack[self.stack.len() - 1 - opcode.op_operand.unwrap().as_usize]);
+                    self.assign_register(&opcode, 0, self.stack[self.stack.len() - 1 - opcode.op_operand.unwrap().as_usize]);
+                }
+                
                 self.pc += 1
             }
             
@@ -282,27 +288,29 @@ impl OSVM {
                 let reg1 = *self.find_register(&opcode, 1).unwrap();
                 let reg2 = *self.find_register(&opcode, 2).unwrap();
                 self.set_tsr(reg1);
-                match self.tsr {
-                    0 => {
-                        let sum = reg1.to_u64() + reg2.to_u64();
-                
-                        let dest = self.find_register(&opcode, 0).unwrap();
-                        *dest = Word::U64(sum);
+                unsafe {
+                    match self.tsr {
+                        0 => {
+                            let sum = reg1.as_u64 + reg2.as_u64;
+                    
+                            let dest = self.find_register(&opcode, 0).unwrap();
+                            *dest = Word { as_u64: sum };
+                        }
+                        1 => {
+                            let sum = reg1.as_i64 + reg2.as_i64;
+                            
+                            let dest = self.find_register(&opcode, 0).unwrap();
+                            *dest = Word { as_i64: sum };
+                        }
+                        2 => {
+                            let sum = reg1.as_f64 + reg2.as_f64;
+                            
+                            let dest = self.find_register(&opcode, 0).unwrap();
+                            *dest = Word { as_f64: sum };
+                        }
+    
+                        _ => {}
                     }
-                    1 => {
-                        let sum = reg1.to_i64() + reg2.to_i64();
-                        
-                        let dest = self.find_register(&opcode, 0).unwrap();
-                        *dest = Word::I64(sum);
-                    }
-                    2 => {
-                        let sum = reg1.to_f64() + reg2.to_f64();
-                        
-                        let dest = self.find_register(&opcode, 0).unwrap();
-                        *dest = Word::F64(sum);
-                    }
-
-                    _ => {}
                 }
                 self.pc += 1
             }
@@ -316,27 +324,29 @@ impl OSVM {
                 let reg1 = *self.find_register(&opcode, 1).unwrap();
                 let reg2 = *self.find_register(&opcode, 2).unwrap();
                 self.set_tsr(reg1);
-                match self.tsr {
-                    0 => {
-                        let sum = reg1.to_u64() - reg2.to_u64();
-                
-                        let dest = self.find_register(&opcode, 0).unwrap();
-                        *dest = Word::U64(sum);
+                unsafe {
+                    match self.tsr {
+                        0 => {
+                            let sum = reg1.as_u64 - reg2.as_u64;
+                    
+                            let dest = self.find_register(&opcode, 0).unwrap();
+                            *dest = Word { as_u64: sum };
+                        }
+                        1 => {
+                            let sum = reg1.as_i64 - reg2.as_i64;
+                            
+                            let dest = self.find_register(&opcode, 0).unwrap();
+                            *dest = Word { as_i64: sum };
+                        }
+                        2 => {
+                            let sum = reg1.as_f64 - reg2.as_f64;
+                            
+                            let dest = self.find_register(&opcode, 0).unwrap();
+                            *dest = Word { as_f64: sum };
+                        }
+    
+                        _ => {}
                     }
-                    1 => {
-                        let sum = reg1.to_i64() - reg2.to_i64();
-                        
-                        let dest = self.find_register(&opcode, 0).unwrap();
-                        *dest = Word::I64(sum);
-                    }
-                    2 => {
-                        let sum = reg1.to_f64() - reg2.to_f64();
-                        
-                        let dest = self.find_register(&opcode, 0).unwrap();
-                        *dest = Word::F64(sum);
-                    }
-
-                    _ => {}
                 }
                 self.pc += 1
             }
@@ -350,27 +360,29 @@ impl OSVM {
                 let reg1 = *self.find_register(&opcode, 1).unwrap();
                 let reg2 = *self.find_register(&opcode, 2).unwrap();
                 self.set_tsr(reg1);
-                match self.tsr {
-                    0 => {
-                        let sum = reg1.to_u64() * reg2.to_u64();
-                
-                        let dest = self.find_register(&opcode, 0).unwrap();
-                        *dest = Word::U64(sum);
+                unsafe {
+                    match self.tsr {
+                        0 => {
+                            let sum = reg1.as_u64 * reg2.as_u64;
+                    
+                            let dest = self.find_register(&opcode, 0).unwrap();
+                            *dest = Word { as_u64: sum };
+                        }
+                        1 => {
+                            let sum = reg1.as_i64 * reg2.as_i64;
+                            
+                            let dest = self.find_register(&opcode, 0).unwrap();
+                            *dest = Word { as_i64: sum };
+                        }
+                        2 => {
+                            let sum = reg1.as_f64 * reg2.as_f64;
+                            
+                            let dest = self.find_register(&opcode, 0).unwrap();
+                            *dest = Word { as_f64: sum };
+                        }
+        
+                        _ => {}
                     }
-                    1 => {
-                        let sum = reg1.to_i64() * reg2.to_i64();
-                        
-                        let dest = self.find_register(&opcode, 0).unwrap();
-                        *dest = Word::I64(sum);
-                    }
-                    2 => {
-                        let sum = reg1.to_f64() * reg2.to_f64();
-                        
-                        let dest = self.find_register(&opcode, 0).unwrap();
-                        *dest = Word::F64(sum);
-                    }
-
-                    _ => {}
                 }
                 self.pc += 1
             }
@@ -384,39 +396,41 @@ impl OSVM {
                 let reg1 = *self.find_register(&opcode, 1).unwrap();
                 let reg2 = *self.find_register(&opcode, 2).unwrap();
                 self.set_tsr(reg1);
-                match self.tsr {
-                    0 => {
-                        if reg1.to_u64() == 0 || reg2.to_u64() == 0 {
-                            return Error::DivByZero;
+                unsafe {
+                    match self.tsr {
+                        0 => {
+                            if reg1.as_u64 == 0 || reg2.as_u64 == 0 {
+                                return Error::DivByZero;
+                            }
+    
+                            let sum = reg1.as_u64 + reg2.as_u64;
+                    
+                            let dest = self.find_register(&opcode, 0).unwrap();
+                            *dest = Word { as_u64: sum };
                         }
-
-                        let sum = reg1.to_u64() + reg2.to_u64();
-                
-                        let dest = self.find_register(&opcode, 0).unwrap();
-                        *dest = Word::U64(sum);
-                    }
-                    1 => {
-                        if reg1.to_i64() == 0 || reg2.to_i64() == 0 {
-                            return Error::DivByZero;
+                        1 => {
+                            if reg1.as_i64 == 0 || reg2.as_i64 == 0 {
+                                return Error::DivByZero;
+                            }
+    
+                            let sum = reg1.as_i64 + reg2.as_i64;
+                            
+                            let dest = self.find_register(&opcode, 0).unwrap();
+                            *dest = Word { as_i64: sum };
                         }
-
-                        let sum = reg1.to_i64() + reg2.to_i64();
-                        
-                        let dest = self.find_register(&opcode, 0).unwrap();
-                        *dest = Word::I64(sum);
-                    }
-                    2 => {
-                        if reg1.to_f64() == 0.0 || reg2.to_f64() == 0.0 {
-                            return Error::DivByZero;
+                        2 => {
+                            if reg1.as_f64 == 0.0 || reg2.as_f64 == 0.0 {
+                                return Error::DivByZero;
+                            }
+    
+                            let sum = reg1.as_f64 + reg2.as_f64;
+                            
+                            let dest = self.find_register(&opcode, 0).unwrap();
+                            *dest = Word { as_f64: sum };
                         }
-
-                        let sum = reg1.to_f64() + reg2.to_f64();
-                        
-                        let dest = self.find_register(&opcode, 0).unwrap();
-                        *dest = Word::F64(sum);
+    
+                        _ => {}
                     }
-
-                    _ => {}
                 }
                 self.pc += 1
             }
@@ -430,21 +444,23 @@ impl OSVM {
                 
                 let reg1 = *self.find_register(&opcode, 0).unwrap();
                 self.set_tsr(reg1);
-                match self.tsr {
-                    0 => {
-                        let reg1 = self.find_register(&opcode, 0).unwrap();
-                        *reg1 = Word::U64(reg1.to_u64() - 1);
+                unsafe {
+                    match self.tsr {
+                        0 => {
+                            let reg1 = self.find_register(&opcode, 0).unwrap();
+                            *reg1 = Word { as_u64: reg1.as_u64 - 1 };
+                        }
+                        1 => {
+                            let reg1 = self.find_register(&opcode, 0).unwrap();
+                            *reg1 = Word { as_i64: reg1.as_i64 - 1 };
+                        }
+                        2 => {
+                            let reg1 = self.find_register(&opcode, 0).unwrap();
+                            *reg1 = Word { as_f64: reg1.as_f64 - 1.0 };
+                        }
+    
+                        _ => {}
                     }
-                    1 => {
-                        let reg1 = self.find_register(&opcode, 0).unwrap();
-                        *reg1 = Word::I64(reg1.to_i64() - 1);
-                    }
-                    2 => {
-                        let reg1 = self.find_register(&opcode, 0).unwrap();
-                        *reg1 = Word::F64(reg1.to_f64() - 1.0);
-                    }
-
-                    _ => {}
                 }
                 self.pc += 1
             }
@@ -457,21 +473,23 @@ impl OSVM {
                 
                 let reg1 = *self.find_register(&opcode, 0).unwrap();
                 self.set_tsr(reg1);
-                match self.tsr {
-                    0 => {
-                        let reg1 = self.find_register(&opcode, 0).unwrap();
-                        *reg1 = Word::U64(reg1.to_u64() + 1);
+                unsafe {
+                    match self.tsr {
+                        0 => {
+                            let reg1 = self.find_register(&opcode, 0).unwrap();
+                            *reg1 = Word { as_u64: reg1.as_u64 + 1 };
+                        }
+                        1 => {
+                            let reg1 = self.find_register(&opcode, 0).unwrap();
+                            *reg1 = Word { as_i64: reg1.as_i64 + 1 };
+                        }
+                        2 => {
+                            let reg1 = self.find_register(&opcode, 0).unwrap();
+                            *reg1 = Word { as_f64: reg1.as_f64 + 1.0 };
+                        }
+    
+                        _ => {}
                     }
-                    1 => {
-                        let reg1 = self.find_register(&opcode, 0).unwrap();
-                        *reg1 = Word::I64(reg1.to_i64() + 1);
-                    }
-                    2 => {
-                        let reg1 = self.find_register(&opcode, 0).unwrap();
-                        *reg1 = Word::F64(reg1.to_f64() + 1.0);
-                    }
-
-                    _ => {}
                 }
                 self.pc += 1
             }
@@ -486,27 +504,29 @@ impl OSVM {
                 let reg1 = *self.find_register(&opcode, 1).unwrap();
                 let reg2 = *self.find_register(&opcode, 2).unwrap();
                 self.set_tsr(reg1);
-                match self.tsr {
-                    0 => {
-                        let sum = Word::U64((reg1.to_u64() == reg2.to_u64()) as u64);
-                        
-                        let dest = self.find_register(&opcode, 0).unwrap();
-                        *dest = sum;
+                unsafe {
+                    match self.tsr {
+                        0 => {
+                            let sum = Word { as_u64: (reg1.as_u64 == reg2.as_u64) as u64 };
+                            
+                            let dest = self.find_register(&opcode, 0).unwrap();
+                            *dest = sum;
+                        }
+                        1 => {
+                            let sum = Word { as_u64: (reg1.as_i64 == reg2.as_i64) as u64 };
+                            
+                            let dest = self.find_register(&opcode, 0).unwrap();
+                            *dest = sum;
+                        }
+                        2 => {
+                            let sum = Word { as_u64: (reg1.as_f64 == reg2.as_f64) as u64 };
+                            
+                            let dest = self.find_register(&opcode, 0).unwrap();
+                            *dest = sum;
+                        }
+    
+                        _ => {}
                     }
-                    1 => {
-                        let sum = Word::U64((reg1.to_i64() == reg2.to_i64()) as u64);
-                        
-                        let dest = self.find_register(&opcode, 0).unwrap();
-                        *dest = sum;
-                    }
-                    2 => {
-                        let sum = Word::U64((reg1.to_f64() == reg2.to_f64()) as u64);
-                        
-                        let dest = self.find_register(&opcode, 0).unwrap();
-                        *dest = sum;
-                    }
-
-                    _ => {}
                 }
                 self.pc += 1
             }
@@ -519,10 +539,12 @@ impl OSVM {
                 }
                 
                 let reg1 = *self.find_register(&opcode, 0).unwrap();
-                if reg1.to_u64() == 1 {
-                    self.pc = opcode.op_operand.unwrap().to_usize();
-                } else {
-                    self.pc += 1
+                unsafe {
+                    if reg1.as_u64 == 1 {
+                        self.pc = opcode.op_operand.unwrap().as_usize;
+                    } else {
+                        self.pc += 1
+                    }
                 }
             }
             OpcodeType::Jz => {
@@ -533,10 +555,12 @@ impl OSVM {
                 }
                 
                 let reg1 = *self.find_register(&opcode, 0).unwrap();
-                if reg1.to_u64() == 0 {
-                    self.pc = opcode.op_operand.unwrap().to_usize();
-                } else {
-                    self.pc += 1
+                unsafe {
+                    if reg1.as_u64 == 0 {
+                        self.pc = opcode.op_operand.unwrap().as_usize;
+                    } else {
+                        self.pc += 1
+                    }
                 }
             }
             OpcodeType::Jnz => {
@@ -547,26 +571,32 @@ impl OSVM {
                 }
                 
                 let reg1 = *self.find_register(&opcode, 0).unwrap();
-                if reg1.to_u64() != 0 {
-                    self.pc = opcode.op_operand.unwrap().to_usize();
-                } else {
-                    self.pc += 1
+                unsafe {
+                    if reg1.as_u64 != 0 {
+                        self.pc = opcode.op_operand.unwrap().as_usize;
+                    } else {
+                        self.pc += 1
+                    }
                 }
             }
             
             // Stack opcodes
             OpcodeType::Push => {
-                if opcode.op_operand == None {
-                    if opcode.op_regs.len() < 1 {
-                        return Error::RegisterUnderflow;
-                    } else if opcode.op_regs.len() > 1 {
-                        return Error::RegisterOverflow;
+                match opcode.op_operand {
+                    None => {
+                        if opcode.op_regs.len() < 1 {
+                            return Error::RegisterUnderflow;
+                        } else if opcode.op_regs.len() > 1 {
+                            return Error::RegisterOverflow;
+                        }
+                        
+                        let reg = *self.find_register(&opcode, 0).unwrap();
+                        self.stack.push(reg);
                     }
                     
-                    let reg = *self.find_register(&opcode, 0).unwrap();
-                    self.stack.push(reg);
-                } else {
-                    self.stack.push(opcode.op_operand.unwrap());
+                    _ => {
+                        self.stack.push(opcode.op_operand.unwrap());
+                    }
                 }
                 self.pc += 1
             }
@@ -579,12 +609,14 @@ impl OSVM {
                 let a = self.stack.pop().unwrap();
                 let b = self.stack.pop().unwrap();
                 self.set_tsr(b);
-                match self.tsr {
-                    0 => self.stack.push(Word::U64(b.to_u64() + a.to_u64())),
-                    1 => self.stack.push(Word::I64(b.to_i64() + a.to_i64())),
-                    2 => self.stack.push(Word::F64(b.to_f64() + a.to_f64())),
-
-                    _ => {}
+                unsafe {
+                    match self.tsr {
+                        0 => self.stack.push(Word { as_u64: b.as_u64 + a.as_u64 }),
+                        1 => self.stack.push(Word { as_i64: b.as_i64 + a.as_i64 }),
+                        2 => self.stack.push(Word { as_f64: b.as_f64 + a.as_f64 }),
+    
+                        _ => {}
+                    }
                 }
                 self.pc += 1
             }
@@ -596,15 +628,17 @@ impl OSVM {
                 let a = self.stack.pop().unwrap();
                 let b = self.stack.pop().unwrap();
                 self.set_tsr(b);
-                match self.tsr {
-                    0 => self.stack.push(Word::U64(b.to_u64() - a.to_u64())),
-                    1 => self.stack.push(Word::I64(b.to_i64() - a.to_i64())),
-                    2 => self.stack.push(Word::F64(b.to_f64() - a.to_f64())),
-
-                    _ => {}
+                unsafe {
+                    match self.tsr {
+                        0 => self.stack.push(Word { as_u64: b.as_u64 - a.as_u64 }),
+                        1 => self.stack.push(Word { as_i64: b.as_i64 - a.as_i64 }),
+                        2 => self.stack.push(Word { as_f64: b.as_f64 - a.as_f64 }),
+    
+                        _ => {}
+                    }
                 }
-                self.pc += 1
             }
+            
             OpcodeType::Muls => {
                 if self.stack.len() < 2 {
                     return Error::StackUnderflow;
@@ -613,12 +647,14 @@ impl OSVM {
                 let a = self.stack.pop().unwrap();
                 let b = self.stack.pop().unwrap();
                 self.set_tsr(b);
-                match self.tsr {
-                    0 => self.stack.push(Word::U64(b.to_u64() * a.to_u64())),
-                    1 => self.stack.push(Word::I64(b.to_i64() * a.to_i64())),
-                    2 => self.stack.push(Word::F64(b.to_f64() * a.to_f64())),
-
-                    _ => {}
+                unsafe {
+                    match self.tsr {
+                        0 => self.stack.push(Word { as_u64: b.as_u64 * a.as_u64 }),
+                        1 => self.stack.push(Word { as_i64: b.as_i64 * a.as_i64 }),
+                        2 => self.stack.push(Word { as_f64: b.as_f64 * a.as_f64 }),
+    
+                        _ => {}
+                    }
                 }
                 self.pc += 1
             }
@@ -630,12 +666,14 @@ impl OSVM {
                 let a = self.stack.pop().unwrap();
                 let b = self.stack.pop().unwrap();
                 self.set_tsr(b);
-                match self.tsr {
-                    0 => self.stack.push(Word::U64(b.to_u64() / a.to_u64())),
-                    1 => self.stack.push(Word::I64(b.to_i64() / a.to_i64())),
-                    2 => self.stack.push(Word::F64(b.to_f64() / a.to_f64())),
-
-                    _ => {}
+                unsafe {
+                    match self.tsr {
+                        0 => self.stack.push(Word { as_u64: b.as_u64 / a.as_u64 }),
+                        1 => self.stack.push(Word { as_i64: b.as_i64 / a.as_i64 }),
+                        2 => self.stack.push(Word { as_f64: b.as_f64 / a.as_f64 }),
+    
+                        _ => {}
+                    }
                 }
                 self.pc += 1
             }
@@ -648,23 +686,27 @@ impl OSVM {
                 let a = self.stack[self.stack.len() - 1];
                 let b = self.stack[self.stack.len() - 2];
                 self.set_tsr(b);
-                match self.tsr {
-                    0 => self.stack.push(Word::U64((b.to_u64() == a.to_u64()) as u64)),
-                    1 => self.stack.push(Word::U64((b.to_i64() == a.to_i64()) as u64)),
-                    2 => self.stack.push(Word::U64((b.to_f64() == a.to_f64()) as u64)),
-
-                    _ => {}
+                unsafe {
+                    match self.tsr {
+                        0 => self.stack.push(Word { as_u64: (b.as_u64 == a.as_u64) as u64 }),
+                        1 => self.stack.push(Word { as_u64: (b.as_i64 == a.as_i64) as u64 }),
+                        2 => self.stack.push(Word { as_u64: (b.as_f64 == a.as_f64) as u64 }),
+    
+                        _ => {}
+                    }
                 }
                 self.pc += 1
             }
             
             OpcodeType::Dupl => {
-                if self.stack.len() - opcode.op_operand.unwrap().to_usize() <= 0 {
-                    return Error::StackUnderflow;
+                unsafe {
+                    if self.stack.len() - opcode.op_operand.unwrap().as_usize <= 0 {
+                        return Error::StackUnderflow;
+                    }
+                    
+                    self.stack.push(self.stack[self.stack.len() - 1 - opcode.op_operand.unwrap().as_usize]);
+                    self.pc += 1
                 }
-                
-                self.stack.push(self.stack[self.stack.len() - 1 - opcode.op_operand.unwrap().to_usize()]);
-                self.pc += 1
             }
             
             OpcodeType::Jts => {
@@ -673,10 +715,12 @@ impl OSVM {
                 }
                 
                 let a = self.stack.pop().unwrap();
-                if a.to_u64() == 1 {
-                    self.pc = opcode.op_operand.unwrap().to_usize();
-                } else {
-                    self.pc += 1
+                unsafe {
+                    if a.as_u64 == 1 {
+                        self.pc = opcode.op_operand.unwrap().as_usize;
+                    } else {
+                        self.pc += 1
+                    }
                 }
             }
             OpcodeType::Jzs => {
@@ -685,10 +729,12 @@ impl OSVM {
                 }
                 
                 let a = self.stack.pop().unwrap();
-                if a.to_u64() == 0 {
-                    self.pc = opcode.op_operand.unwrap().to_usize();
-                } else {
-                    self.pc += 1
+                unsafe {
+                    if a.as_u64 == 0 {
+                        self.pc = opcode.op_operand.unwrap().as_usize;
+                    } else {
+                        self.pc += 1
+                    }
                 }
             }
             OpcodeType::Jnzs => {
@@ -697,10 +743,12 @@ impl OSVM {
                 }
                 
                 let a = self.stack[self.stack.len() - 1];
-                if a.to_u64() != 0 {
-                    self.pc = opcode.op_operand.unwrap().to_usize();
-                } else {
-                    self.pc += 1
+                unsafe {
+                    if a.as_u64 != 0 {
+                        self.pc = opcode.op_operand.unwrap().as_usize;
+                    } else {
+                        self.pc += 1
+                    }
                 }
             }
             
@@ -710,20 +758,26 @@ impl OSVM {
                 }
                 
                 let a = self.stack.len() - 1;
-                let b = self.stack.len() - 1 - opcode.op_operand.unwrap().to_usize();
-                let old = self.stack[a];
-                self.stack[a] = self.stack[b];
-                self.stack[b] = old;
+                unsafe {
+                    let b = self.stack.len() - 1 - opcode.op_operand.unwrap().as_usize;
+                    let old = self.stack[a];
+                    self.stack[a] = self.stack[b];
+                    self.stack[b] = old;
+                }
                 self.pc += 1
             }
             
             // Universal opcodes
             OpcodeType::Jmp => {
-                self.pc = opcode.op_operand.unwrap().to_usize();
+                unsafe {
+                    self.pc = opcode.op_operand.unwrap().as_usize;
+                }
             }
             OpcodeType::Call => {
                 self.rspc = self.pc + 1;
-                self.pc = opcode.op_operand.unwrap().to_usize();
+                unsafe {
+                    self.pc = opcode.op_operand.unwrap().as_usize;
+                }
             }
             
             OpcodeType::Pop => {
@@ -740,8 +794,8 @@ impl OSVM {
                         return Error::RegisterUnderflow;
                     }
                     
-                    self.set_tsr(Word::U64(0));
-                    self.assign_register(&opcode, 0, Word::U64(0));
+                    self.set_tsr(Word { as_u64: 0 });
+                    self.assign_register(&opcode, 0, Word { as_u64: 0 });
                 }
                 self.pc += 1
             }
@@ -825,14 +879,14 @@ impl OSVM {
                             self.program.push(Opcode { op_type: OpcodeType::Mov, op_operand: None, op_regs: vec![operands[0].to_string(), operands[1].to_string()] });
                         } else if operands[1].starts_with(CONST) {
                             if operands[1].replace(CONST, "").parse::<u64>().is_ok() {
-                                self.program.push(Opcode { op_type: OpcodeType::Mov, op_operand: Some(Word::U64(operands[1].replace(CONST, "").parse().unwrap())), op_regs: vec![operands[0].to_string()] });
+                                self.program.push(Opcode { op_type: OpcodeType::Mov, op_operand: Some(Word { as_u64: (operands[1].replace(CONST, "").parse().unwrap()) }), op_regs: vec![operands[0].to_string()] });
                             } else if operands[1].replace(CONST, "").parse::<i64>().is_ok() {
-                                self.program.push(Opcode { op_type: OpcodeType::Mov, op_operand: Some(Word::I64(operands[1].replace(CONST, "").parse().unwrap())), op_regs: vec![operands[0].to_string()] });
+                                self.program.push(Opcode { op_type: OpcodeType::Mov, op_operand: Some(Word { as_i64: (operands[1].replace(CONST, "").parse().unwrap()) }), op_regs: vec![operands[0].to_string()] });
                             } else if operands[1].replace(CONST, "").parse::<f64>().is_ok() {
-                                self.program.push(Opcode { op_type: OpcodeType::Mov, op_operand: Some(Word::F64(operands[1].replace(CONST, "").parse().unwrap())), op_regs: vec![operands[0].to_string()] });
+                                self.program.push(Opcode { op_type: OpcodeType::Mov, op_operand: Some(Word { as_f64: (operands[1].replace(CONST, "").parse().unwrap()) }), op_regs: vec![operands[0].to_string()] });
                             }
                         } else if operands[1].starts_with(GSI) {
-                            self.program.push(Opcode { op_type: OpcodeType::Movfs, op_operand: Some(Word::U64(operands[1].replace(GSI, "").parse().unwrap())), op_regs: vec![operands[0].to_string()] });
+                            self.program.push(Opcode { op_type: OpcodeType::Movfs, op_operand: Some(Word { as_u64: (operands[1].replace(GSI, "").parse().unwrap()) }), op_regs: vec![operands[0].to_string()] });
                         } else {
                             eprintln!("[Error]: Invalid operand `{}` at line: {}", operands[1], line_num);
                         }
@@ -894,13 +948,13 @@ impl OSVM {
                         if operands[0].starts_with(CONST) {
                             match inst_name {
                                 JT => {
-                                    self.program.push(Opcode { op_type: OpcodeType::Jt, op_operand: Some(Word::U64(operands[0].replace(CONST, "").parse().unwrap())), op_regs: vec![operands[1].to_string()] });
+                                    self.program.push(Opcode { op_type: OpcodeType::Jt, op_operand: Some(Word { as_u64: (operands[1].replace(CONST, "").parse().unwrap()) }), op_regs: vec![operands[1].to_string()] });
                                 }
                                 JZ => {
-                                    self.program.push(Opcode { op_type: OpcodeType::Jz, op_operand: Some(Word::U64(operands[0].replace(CONST, "").parse().unwrap())), op_regs: vec![operands[1].to_string()] });
+                                    self.program.push(Opcode { op_type: OpcodeType::Jz, op_operand: Some(Word { as_u64: (operands[1].replace(CONST, "").parse().unwrap()) }), op_regs: vec![operands[1].to_string()] });
                                 }
                                 JNZ => {
-                                    self.program.push(Opcode { op_type: OpcodeType::Jnz, op_operand: Some(Word::U64(operands[0].replace(CONST, "").parse().unwrap())), op_regs: vec![operands[1].to_string()] });
+                                    self.program.push(Opcode { op_type: OpcodeType::Jnz, op_operand: Some(Word { as_u64: (operands[1].replace(CONST, "").parse().unwrap()) }), op_regs: vec![operands[1].to_string()] });
                                 }
                                 
                                 _ => {}
@@ -929,11 +983,11 @@ impl OSVM {
                             self.program.push(Opcode { op_type: OpcodeType::Push, op_operand: None, op_regs: vec![tokens[0].to_string()] });
                         } else if tokens[0].starts_with(CONST) {
                             if tokens[0].replace(CONST, "").parse::<u64>().is_ok() {
-                                self.program.push(Opcode { op_type: OpcodeType::Push, op_operand: Some(Word::U64(tokens[0].replace(CONST, "").parse().unwrap())), op_regs: Vec::new() });
+                                self.program.push(Opcode { op_type: OpcodeType::Push, op_operand: Some(Word { as_u64: (tokens[0].replace(CONST, "").parse().unwrap()) }), op_regs: Vec::new() });
                             } else if tokens[0].replace(CONST, "").parse::<i64>().is_ok() {
-                                self.program.push(Opcode { op_type: OpcodeType::Push, op_operand: Some(Word::I64(tokens[0].replace(CONST, "").parse().unwrap())), op_regs: Vec::new() });
+                                self.program.push(Opcode { op_type: OpcodeType::Push, op_operand: Some(Word { as_i64: (tokens[0].replace(CONST, "").parse().unwrap()) }), op_regs: Vec::new() });
                             } else if tokens[0].replace(CONST, "").parse::<f64>().is_ok() {
-                                self.program.push(Opcode { op_type: OpcodeType::Push, op_operand: Some(Word::F64(tokens[0].replace(CONST, "").parse().unwrap())), op_regs: Vec::new() });
+                                self.program.push(Opcode { op_type: OpcodeType::Push, op_operand: Some(Word { as_f64: (tokens[0].replace(CONST, "").parse().unwrap()) }), op_regs: Vec::new() });
                             }
                         } else {
                             eprintln!("[Error]: Invalid operand `{}` at line: {}", tokens[0], line_num);
@@ -961,7 +1015,7 @@ impl OSVM {
                     
                     DUPL => {
                         let op: i64 = tokens[0].parse().unwrap();
-                        self.program.push(Opcode { op_type: OpcodeType::Dupl, op_operand: Some(Word::U64(op as u64)), op_regs: Vec::new() });
+                        self.program.push(Opcode { op_type: OpcodeType::Dupl, op_operand: Some(Word { as_u64: op as u64 }), op_regs: Vec::new() });
                     }
                     
                     EQUALS => {
@@ -972,13 +1026,13 @@ impl OSVM {
                         if tokens[0].starts_with(CONST) {
                             match inst_name {
                                 JTS => {
-                                    self.program.push(Opcode { op_type: OpcodeType::Jts, op_operand: Some(Word::U64(tokens[0].replace(CONST, "").parse().unwrap())), op_regs: Vec::new() });
+                                    self.program.push(Opcode { op_type: OpcodeType::Jts, op_operand: Some(Word { as_u64: (tokens[0].replace(CONST, "").parse().unwrap()) }), op_regs: Vec::new() });
                                 }
                                 JZS => {
-                                    self.program.push(Opcode { op_type: OpcodeType::Jzs, op_operand: Some(Word::U64(tokens[0].replace(CONST, "").parse().unwrap())), op_regs: Vec::new() });
+                                    self.program.push(Opcode { op_type: OpcodeType::Jzs, op_operand: Some(Word { as_u64: (tokens[0].replace(CONST, "").parse().unwrap()) }), op_regs: Vec::new() });
                                 }
                                 JNZS => {
-                                    self.program.push(Opcode { op_type: OpcodeType::Jnzs, op_operand: Some(Word::U64(tokens[0].replace(CONST, "").parse().unwrap())), op_regs: Vec::new() });
+                                    self.program.push(Opcode { op_type: OpcodeType::Jnzs, op_operand: Some(Word { as_u64: (tokens[0].replace(CONST, "").parse().unwrap()) }), op_regs: Vec::new() });
                                 }
                                 
                                 _ => {}
@@ -1003,13 +1057,13 @@ impl OSVM {
                     
                     SWC => {
                         let op: i64 = tokens[0].parse().unwrap();
-                        self.program.push(Opcode { op_type: OpcodeType::Swc, op_operand: Some(Word::U64(op as u64)), op_regs: Vec::new() });
+                        self.program.push(Opcode { op_type: OpcodeType::Swc, op_operand: Some(Word { as_u64: op as u64 }), op_regs: Vec::new() });
                     }
                     
                     // Universal opcodes
                     JMP => {
                         if tokens[0].starts_with(CONST) {
-                            self.program.push(Opcode { op_type: OpcodeType::Jmp, op_operand: Some(Word::U64(tokens[0].replace(CONST, "").parse().unwrap())), op_regs: Vec::new() });
+                            self.program.push(Opcode { op_type: OpcodeType::Jmp, op_operand: Some(Word { as_u64: (tokens[0].replace(CONST, "").parse().unwrap()) }), op_regs: Vec::new() });
                         } else {
                             oasm.deferred_operands_push(tokens[0], self.program.len());
                             self.program.push(Opcode { op_type: OpcodeType::Jmp, op_operand: None, op_regs: Vec::new() });
@@ -1047,7 +1101,7 @@ impl OSVM {
         
         for i in 0..oasm.deferred_operands.len() {
             let label_addr = oasm.labels_contains(oasm.deferred_operands[i].label.as_str());
-            self.program[oasm.deferred_operands[i].addr].op_operand = Some(Word::U64(label_addr.unwrap() as u64));
+            self.program[oasm.deferred_operands[i].addr].op_operand = Some(Word { as_u64: label_addr.unwrap() as u64 });
         }
     }
     
