@@ -627,6 +627,7 @@ impl OSVM {
                 
                 let a = self.stack.pop().unwrap();
                 let b = self.stack.pop().unwrap();
+                println!("{:?}", a);
                 self.set_tsr(b);
                 unsafe {
                     match self.tsr {
@@ -637,6 +638,7 @@ impl OSVM {
                         _ => {}
                     }
                 }
+                self.pc += 1;
             }
             
             OpcodeType::Muls => {

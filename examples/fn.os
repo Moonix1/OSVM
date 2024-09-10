@@ -6,5 +6,5 @@ _start:
 calculate:
     push #420
     push #20
-    subs
+    adds
     ret
