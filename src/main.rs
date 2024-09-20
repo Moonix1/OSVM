@@ -612,6 +612,14 @@ impl OSVM {
                                 self.free(&opcode.clone(), opcode.op_regs);
                             }
                         }
+                        3 => {
+                            if opcode.op_regs.is_empty() {
+                                self.print_num(self.stack[self.stack.len() - 1]);
+                            } else {
+                                let reg = *self.find_register(&opcode, 0).unwrap();
+                                self.print_num(reg);
+                            }
+                        }
                         
                         _ => {}
                     }
@@ -1192,6 +1200,18 @@ impl OSVM {
         }
         
         return Error::None;
+    }
+    
+    fn print_num(self: &Self, num: Word) {
+        unsafe {
+            match num {
+                Word { as_u64: _ } => println!("{}", num.as_u64),
+                Word { as_i64: _ } => println!("{}", num.as_i64),
+                Word { as_f64: _ } => println!("{}", num.as_f64),
+                
+                _ => {}
+            }
+        }
     }
     
     fn dump(self: &Self) {
