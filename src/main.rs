@@ -790,7 +790,7 @@ impl OSVM {
                     return Error::StackUnderflow;
                 }
                 
-                let a = self.stack[self.stack.len() - 1];
+                let a = self.stack.pop().unwrap();
                 unsafe {
                     if a.as_u64 != 0 {
                         self.pc = opcode.op_operand.unwrap().as_usize;
