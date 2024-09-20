@@ -48,6 +48,8 @@ impl OSVMFile {
                 exit(1);
             }
             
+            println!("[Loading File] => {} => OSVM", file_path);
+            
             fclose(file);
         }
     }
@@ -68,6 +70,8 @@ impl OSVMFile {
                 eprintln!("[Error]: Could not write to file `{}`", file_path);
                 exit(1);
             }
+            
+            println!("[Created File] => {}", file_path);
             
             fclose(file);
         }

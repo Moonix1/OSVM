@@ -1307,15 +1307,16 @@ fn main() {
             let output_path = shift(&mut index, &args);
             let source = get_file_contents(&input_path);
             osvm.translate_source(oasm, source);
+            println!("[Converting File] => {} => {}", input_path, output_path);
             osvm_file.save_program_to_file(&mut osvm, &output_path);
             
             if subcommand == "run" {
-                println!("------------ Running ------------");
                 osvm_file.load_program_from_file(&mut osvm, &output_path);
+                println!("------------ Running ------------");
                 osvm.execute_program(false);
             } else if subcommand == "debug" {
-                println!("------ Running (Debugging) ------");
                 osvm_file.load_program_from_file(&mut osvm, &output_path);
+                println!("------ Running (Debugging) ------");
                 osvm.execute_program(true);
             }
         }
