@@ -4,16 +4,27 @@ mod defines;
 mod oasm;
 mod opcode;
 mod error;
+mod file;
 
-use std::{alloc::alloc, env, ffi::{c_void, CString}, fs::File, io::{Read, Write}, ops::{Add, Deref, Index}, process::exit};
+use std::{
+    alloc::alloc,
+    env,
+    ffi::{c_void, CString},
+    fs::File,
+    io::{Read, Write},
+    ops::{Add, Deref, Index},
+    process::exit
+};
+
+use libc::{free, malloc};
+
 use std::io::stdin;
-use std::mem;
-use libc::{fclose, ferror, fopen, fread, free, fseek, ftell, fwrite, malloc, SEEK_END, SEEK_SET};
 
 use defines::*;
 use oasm::*;
 use opcode::*;
 use error::*;
+use file::*;
 
 pub struct OSVM {
     // Registers
@@ -1147,67 +1158,6 @@ impl OSVM {
         self.program.extend_from_slice(&program);
     }
     
-    fn load_program_from_file(self: &mut Self, file_path: &str) {
-        unsafe {
-            let file_name = CString::new(file_path).unwrap();
-            let file_mode = CString::new("rb").unwrap();
-            let file = fopen(file_name.as_ptr(), file_mode.as_ptr());
-            if file.is_null() {
-                eprintln!("[Error]: Could not open file `{}`", file_path);
-                exit(1);
-            }
-            
-            if fseek(file, 0, SEEK_END) < 0 {
-                eprintln!("[Error]: Could not read file `{}`", file_path);
-                exit(1);
-            }
-            
-            let m = ftell(file);
-            if m < 0 {
-                eprintln!("[Error]: Could not read file `{}`", file_path);
-                exit(1);
-            }
-            
-            assert!(m as usize % mem::size_of::<Opcode>() == 0);
-            
-            if fseek(file, 0, SEEK_SET) < 0 {
-                eprintln!("[Error]: Could not read file `{}`", file_path);
-                exit(1);
-            }
-            
-            self.program.set_len(fread(self.program.as_ptr() as *mut c_void, mem::size_of::<Opcode>(),
-                m as usize / mem::size_of::<Opcode>(), file));
-            
-            if ferror(file) != 0 {
-                eprintln!("[Error]: Could not read file `{}`", file_path);
-                exit(1);
-            }
-            
-            fclose(file);
-        }
-    }
-
-    fn save_program_to_file(self: &Self, file_path: &str) {
-        unsafe {
-            let file_name = CString::new(file_path).unwrap();
-            let file_mode = CString::new("wb").unwrap();
-            let file = fopen(file_name.as_ptr(), file_mode.as_ptr());
-            if file.is_null() {
-                eprintln!("[Error]: Could not open file `{}`", file_path);
-                exit(1);
-            }
-            
-            fwrite(self.program.as_ptr() as *const c_void, mem::size_of::<Opcode>(), self.program.len(), file);
-        
-            if ferror(file) != 0 {
-                eprintln!("[Error]: Could not write to file `{}`", file_path);
-                exit(1);
-            }
-            
-            fclose(file);
-        }
-    }
-    
     fn alloc(self: &mut Self, opcode: &Opcode, reg: Vec<String>) -> Error {
         unsafe {
             if reg.is_empty() {
@@ -1304,7 +1254,7 @@ fn usage(program_file: &String) {
     println!("[Subcommands]:");
     println!("  -   build <INPUT.OS> <OUTPUT.VBIN>  ->  Compiles the program");
     println!("  -   run   <INPUT.OS> <OUTPUT.VBIN>  ->  Runs the program");
-    println!("  -   debug <INPUT.BIN>               ->  Compiles the program");
+    println!("  -   debug <INPUT.OS> <OUTPUT.VBIN>  ->  Compiles the program");
 }
 
 fn shift(index: &mut usize, args: &Vec<String>) -> String {
@@ -1324,6 +1274,7 @@ fn main() {
     let program_file = shift(&mut index, &args);
     
     let mut osvm: OSVM = OSVM::init();
+    let mut osvm_file: OSVMFile = OSVMFile {}; 
     let oasm: OASM = OASM::init();
     let opcode: Opcode = Opcode::init();
     
@@ -1336,15 +1287,15 @@ fn main() {
             let output_path = shift(&mut index, &args);
             let source = get_file_contents(&input_path);
             osvm.translate_source(oasm, source);
-            osvm.save_program_to_file(&output_path);
+            osvm_file.save_program_to_file(&mut osvm, &output_path);
             
             if subcommand == "run" {
                 println!("------------ Running ------------");
-                osvm.load_program_from_file(&output_path);
+                osvm_file.load_program_from_file(&mut osvm, &output_path);
                 osvm.execute_program(false);
             } else if subcommand == "debug" {
                 println!("------ Running (Debugging) ------");
-                osvm.load_program_from_file(&output_path);
+                osvm_file.load_program_from_file(&mut osvm, &output_path);
                 osvm.execute_program(true);
             }
         }
