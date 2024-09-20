@@ -1245,14 +1245,25 @@ impl OSVM {
         }
     }
     
-    fn execute_program(self: &mut Self, debug: bool) {
+    fn execute_program(self: &mut Self) {
         while !self.halt {
             let err: Error = self.execute_opcode();
-            if debug {
-                let mut buffer = String::new();
-                let _ = stdin().read_line(&mut buffer);
-                self.dump();
+            if err != Error::None {
+                println!("[Error]: {}", err.as_string());
+                exit(1);
             }
+        }
+    }
+    
+    fn execute_program_debug(self: &mut Self, source: String) {
+        while !self.halt {
+            let err: Error = self.execute_opcode();
+            let mut buffer = String::new();
+            
+            let _ = stdin().read_line(&mut buffer);
+            self.dump();
+            println!("[Instruction] => {:?}", self.program[self.pc]);
+            
             if err != Error::None {
                 println!("[Error]: {}", err.as_string());
                 exit(1);
@@ -1306,18 +1317,18 @@ fn main() {
             let input_path = shift(&mut index, &args);
             let output_path = shift(&mut index, &args);
             let source = get_file_contents(&input_path);
-            osvm.translate_source(oasm, source);
+            osvm.translate_source(oasm, source.clone());
             println!("[Converting File] => {} => {}", input_path, output_path);
             osvm_file.save_program_to_file(&mut osvm, &output_path);
             
             if subcommand == "run" {
                 osvm_file.load_program_from_file(&mut osvm, &output_path);
                 println!("------------ Running ------------");
-                osvm.execute_program(false);
+                osvm.execute_program();
             } else if subcommand == "debug" {
                 osvm_file.load_program_from_file(&mut osvm, &output_path);
                 println!("------ Running (Debugging) ------");
-                osvm.execute_program(true);
+                osvm.execute_program_debug(source);
             }
         }
         

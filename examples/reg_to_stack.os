@@ -6,7 +6,6 @@ _start:
     ; Set system function to print_num
     mov r7, #3
     
-    
     ; Pushes the registers values onto the stack
     push r0
     sysf
