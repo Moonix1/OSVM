@@ -1255,7 +1255,7 @@ impl OSVM {
         }
     }
     
-    fn execute_program_debug(self: &mut Self, source: String) {
+    fn execute_program_debug(self: &mut Self) {
         while !self.halt {
             let err: Error = self.execute_opcode();
             let mut buffer = String::new();
@@ -1328,7 +1328,7 @@ fn main() {
             } else if subcommand == "debug" {
                 osvm_file.load_program_from_file(&mut osvm, &output_path);
                 println!("------ Running (Debugging) ------");
-                osvm.execute_program_debug(source);
+                osvm.execute_program_debug();
             }
         }
         
