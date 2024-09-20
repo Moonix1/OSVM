@@ -1,4 +1,5 @@
 _start: 
+    mov r0, #17
     push #0
     push #1
 loop:
@@ -10,5 +11,7 @@ loop:
     mov r7, #3
     sysf
     
-    jmp loop
+    ; Decrement the counter
+    dec r0
+    jnz loop, r0
     hlt
