@@ -65,11 +65,17 @@ impl Preprocessor {
             if line.starts_with("%") {
                 if line.replace("%", "").starts_with("include") {
                     let path = self.get_string(line);
-                    let mut file: File = File::open(PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap()).join("libs").join(path)).unwrap();
+                    let mut file;
+                    match File::open(PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap()).join("libs").join(path.clone())) {
+                        Ok(_) => file = File::open(PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap()).join("libs").join(path)).unwrap(),
+                        Err(_) => file = File::open(PathBuf::from(file_path.clone()).parent().unwrap().join(path)).unwrap(),
+                    }
+                    
                     let mut include_source = String::new();
                     let _ = file.read_to_string(&mut include_source);
                     
-                    source.insert_str(self.get_cindex(index + 1, source.as_str()), include_source.as_str());
+                    let mut isource = include_source + "\n";
+                    source.insert_str(self.get_cindex(index + 1, source.as_str()), isource.as_str());
                 }
             }
             
