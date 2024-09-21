@@ -1,4 +1,4 @@
-use std::{f32::NAN, fs::File, io::Read, ops::{Range, RangeBounds}};
+use std::{env, f32::NAN, fs::File, io::Read, ops::{Range, RangeBounds}, path::PathBuf};
 
 pub struct Preprocessor {}
 
@@ -65,7 +65,7 @@ impl Preprocessor {
             if line.starts_with("%") {
                 if line.replace("%", "").starts_with("include") {
                     let path = self.get_string(line);
-                    let mut file: File = File::open(path).unwrap();
+                    let mut file: File = File::open(PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap()).join("libs").join(path)).unwrap();
                     let mut include_source = String::new();
                     let _ = file.read_to_string(&mut include_source);
                     

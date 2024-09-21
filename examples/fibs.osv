@@ -1,4 +1,4 @@
-%include "./libs/sys_libs.osv"
+%include "sys_libs.osv"
 
 _start: 
     mov r0, #17
