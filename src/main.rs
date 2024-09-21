@@ -1287,9 +1287,9 @@ fn get_file_contents(file_path: &str) -> String {
 fn usage(program_file: &String) {
     println!("[Usage]: {program_file} <SUBCOMMAND> <ARGS>");
     println!("[Subcommands]:");
-    println!("  -   build <INPUT.OS> <OUTPUT.VBIN>  ->  Compiles the program");
-    println!("  -   run   <INPUT.OS> <OUTPUT.VBIN>  ->  Runs the program");
-    println!("  -   debug <INPUT.OS> <OUTPUT.VBIN>  ->  Compiles the program");
+    println!("  -   build <INPUT.OSV> <OUTPUT.VBIN>  ->  Compiles the program");
+    println!("  -   run   <INPUT.OSV> <OUTPUT.VBIN>  ->  Runs the program");
+    println!("  -   debug <INPUT.OSV> <OUTPUT.VBIN>  ->  Compiles the program");
 }
 
 fn shift(index: &mut usize, args: &Vec<String>) -> String {
