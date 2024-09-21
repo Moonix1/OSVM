@@ -112,6 +112,7 @@ impl Preprocessor {
         }
         
         let mut source = self.remove_line_by_sstr("%", source.clone(), index);
+        source = self.remove_line_by_sstr(";", source.clone(), index);
         for _macro in macros.clone() {
             source = source.replace(_macro.0, _macro.1);
         }

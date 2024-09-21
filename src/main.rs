@@ -900,9 +900,6 @@ impl OSVM {
         let mut line_num = 0;
         for line in lines {
             line_num += 1;
-            if line.is_empty() || line.trim().starts_with(';') {
-                continue;
-            }
             
             let mut tokens: Vec<&str> = line.trim().splitn(2, char::is_whitespace).collect();
             if !tokens.is_empty() && !tokens[0].is_empty() {

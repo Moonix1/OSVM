@@ -1,7 +1,7 @@
 %include "sys_libs.osv"
 
 _start: 
-    mov r0, #17
+    mov r0, #17 ; hello
     push #0
     push #1
 loop:
