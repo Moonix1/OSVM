@@ -1,4 +1,4 @@
-use std::{env, f32::NAN, fs::File, io::Read, ops::{Range, RangeBounds}, path::PathBuf};
+use std::{env, f32::NAN, fs::File, io::Read, ops::{Range, RangeBounds}, os::unix::process::CommandExt, path::PathBuf, process::{exit, Command}};
 
 pub struct Preprocessor {}
 
@@ -66,8 +66,16 @@ impl Preprocessor {
                 if line.replace("%", "").starts_with("include") {
                     let path = self.get_string(line);
                     let mut file;
-                    match File::open(PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap()).join("libs").join(path.clone())) {
-                        Ok(_) => file = File::open(PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap()).join("libs").join(path)).unwrap(),
+                    match env::var("OSVM_LIBS_DIR") {
+                        Ok(_) => {}
+                        Err(_) => {
+                            eprintln!("[Error]: OSVM_LIBS_DIR NOT SET!");
+                            exit(1);
+                        }
+                    }
+                    
+                    match File::open(PathBuf::from(env::var("OSVM_LIBS_DIR").unwrap()).join(path.clone())) {
+                        Ok(_) => file = File::open(PathBuf::from(env::var("OSVM_LIBS_DIR").unwrap()).join(path)).unwrap(),
                         Err(_) => file = File::open(PathBuf::from(file_path.clone()).parent().unwrap().join(path)).unwrap(),
                     }
                     
