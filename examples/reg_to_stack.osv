@@ -1,4 +1,4 @@
-%include "./libs/sys_libs.os"
+%include "./libs/sys_libs.osv"
 
 _start:
     ; Moves the intial values to the registers
