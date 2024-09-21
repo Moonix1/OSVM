@@ -1,5 +1,7 @@
 #![allow(unused, dead_code)]
 
+mod preprocessor;
+
 mod defines;
 mod oasm;
 mod opcode;
@@ -19,6 +21,8 @@ use std::{
 use libc::{free, malloc};
 
 use std::io::stdin;
+
+use preprocessor::*;
 
 use defines::*;
 use oasm::*;
@@ -1304,6 +1308,7 @@ fn main() {
     let mut index = 0;
     let program_file = shift(&mut index, &args);
     
+    let mut preprocessor: Preprocessor = Preprocessor {};
     let mut osvm: OSVM = OSVM::init();
     let mut osvm_file: OSVMFile = OSVMFile {}; 
     let oasm: OASM = OASM::init();
@@ -1316,8 +1321,11 @@ fn main() {
             println!("----------- Compiling -----------");
             let input_path = shift(&mut index, &args);
             let output_path = shift(&mut index, &args);
-            let source = get_file_contents(&input_path);
-            osvm.translate_source(oasm, source.clone());
+            let isource =
+                preprocessor.process_includes(input_path.clone(), get_file_contents(&input_path));
+            let processed_source =
+                preprocessor.process_source(input_path.clone(), isource);
+            osvm.translate_source(oasm, processed_source.clone());
             println!("[Converting File] => {} => {}", input_path, output_path);
             osvm_file.save_program_to_file(&mut osvm, &output_path);
             

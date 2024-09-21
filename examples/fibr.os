@@ -1,3 +1,5 @@
+%include "./libs/sys_libs.os"
+
 _start:
     ; counter
     mov r16, #17
@@ -10,7 +12,7 @@ loop:
     srg r0, r1
     
     ; Print fibbonacci number using print_num system function
-    mov r7, #3
+    mov r7, print_num
     sysf r2
     
     ; Decrement counter
