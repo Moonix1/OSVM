@@ -8,6 +8,8 @@ use crate::utils::file;
 
 use crate::oasm;
 use crate::opcode;
+use crate::utils::sys_functions::SysFunction;
+use crate::utils::sys_functions::SystemFunctions;
 
 use std::{
     alloc::alloc,
@@ -56,10 +58,11 @@ pub struct OSVM {
     pc: usize,
 
     // Stack
-    stack: Vec<Word>,
+    pub stack: Vec<Word>,
     
     // Other
     pub program: Vec<Opcode>,
+    pub sys_functions: Vec<SysFunction>,
     
     halt: bool,
 }
@@ -96,11 +99,22 @@ impl OSVM {
             // Other
             program: Vec::new(),
             
+            sys_functions: Vec::new(),
+            
             halt: false,
         }
     }
     
-    fn assign_register(self: &mut Self, opcode: &Opcode, index: usize, new_value: Word) {
+    pub fn init_default_sysf(self: &mut Self) {
+        self.sys_functions = vec![
+            SystemFunctions::print_ptr,
+            SystemFunctions::print_num,
+            SystemFunctions::free,
+            SystemFunctions::alloc,
+        ]
+    }
+    
+    pub fn assign_register(self: &mut Self, opcode: &Opcode, index: usize, new_value: Word) {
         let reg: String = opcode.op_regs[index].clone();
         match reg.as_str() {
             R0 => {
@@ -161,7 +175,7 @@ impl OSVM {
         }
     }
     
-    fn find_register(self: &mut Self, opcode: &Opcode, index: usize) -> Option<&mut Word> {
+    pub fn find_register(self: &mut Self, opcode: &Opcode, index: usize) -> Option<&mut Word> {
         let reg: String = opcode.op_regs[index].clone();
         match reg.as_str() {
             R0 => {
@@ -602,39 +616,10 @@ impl OSVM {
                         return Error::InvalidSysFunction;
                     }
                     
-                    match self.r7.as_u64 {
-                        1 => {
-                            if opcode.op_regs.is_empty() {
-                                self.alloc(&opcode, Vec::new());
-                            } else {
-                                self.alloc(&opcode.clone(), opcode.op_regs);
-                            }
-                        }
-                        2 => {
-                            if opcode.op_regs.is_empty() {
-                                self.free(&opcode, Vec::new());
-                            } else {
-                                self.free(&opcode.clone(), opcode.op_regs);
-                            }
-                        }
-                        3 => {
-                            if opcode.op_regs.is_empty() {
-                                self.print_num(self.stack[self.stack.len() - 1]);
-                            } else {
-                                let reg = *self.find_register(&opcode, 0).unwrap();
-                                self.print_num(reg);
-                            }
-                        }
-                        4 => {
-                            if opcode.op_regs.is_empty() {
-                                self.print_ptr(self.stack[self.stack.len() - 1]);
-                            } else {
-                                let reg = *self.find_register(&opcode, 0).unwrap();
-                                self.print_ptr(reg);
-                            }
-                        }
-                        
-                        _ => {}
+                    if opcode.op_regs.is_empty() {
+                        self.sys_functions[self.sys_functions.len() - self.r7.as_usize](self, &opcode.clone(), Vec::new());
+                    } else {
+                        self.sys_functions[self.sys_functions.len() - self.r7.as_usize](self, &opcode.clone(), opcode.op_regs);
                     }
                 }
                 self.pc += 1;
@@ -1186,60 +1171,6 @@ impl OSVM {
     
     pub fn load_program_from_memory(self: &mut Self, program: Vec<Opcode>) {
         self.program.extend_from_slice(&program);
-    }
-    
-    fn alloc(self: &mut Self, opcode: &Opcode, reg: Vec<String>) -> Error {
-        unsafe {
-            if reg.is_empty() {
-                if self.stack.len() < 1 {
-                    return Error::StackUnderflow;
-                }
-                
-                let a = self.stack.len() - 1;
-                self.stack[a].as_ptr = malloc(self.stack[a].as_usize);
-            } else {
-                let reg1 = &self.find_register(opcode, 0).unwrap();
-                self.find_register(opcode, 0).unwrap().as_ptr = malloc(reg1.as_usize);
-            }
-        }
-        
-        return Error::None;
-    }
-    
-    fn free(self: &mut Self, opcode: &Opcode, reg: Vec<String>) -> Error {
-        unsafe {
-            if reg.is_empty() {
-                if self.stack.len() < 1 {
-                    return Error::StackUnderflow;
-                }
-                
-                let a = self.stack.len() - 1;
-                free(self.stack.pop().unwrap().as_ptr as *mut c_void);
-            } else {
-                free(self.find_register(opcode, 0).unwrap().as_ptr as *mut c_void);
-                self.find_register(opcode, 0).unwrap().as_usize = 0;
-            }
-        }
-        
-        return Error::None;
-    }
-    
-    fn print_num(self: &Self, num: Word) {
-        unsafe {
-            match num {
-                Word { as_u64: _ } => println!("{}", num.as_u64),
-                Word { as_i64: _ } => println!("{}", num.as_i64),
-                Word { as_f64: _ } => println!("{}", num.as_f64),
-                
-                _ => {}
-            }
-        }
-    }
-    
-    fn print_ptr(self: &Self, num: Word) {
-        unsafe {
-            println!("{:?}", num.as_ptr)
-        }
     }
     
     pub fn dump(self: &Self) {

@@ -34,6 +34,8 @@ fn main() {
     let program_file = shift(&mut index, &args);
     
     let mut osvm: OSVM = OSVM::init();
+    osvm.init_default_sysf();
+    
     let mut osvm_file: OSVMFile = OSVMFile {}; 
     let oasm: OASM = OASM::init();
     
