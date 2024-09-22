@@ -6,6 +6,7 @@ impl Preprocessor {
     fn remove_line_by_sstr(self: &Self, starts_with: &str,  source: String) -> String {
         let mut new_source = String::new();
         for line in source.lines() {
+            let line = line.trim();
             if line.starts_with(starts_with) {
                 continue;
             }
@@ -112,6 +113,7 @@ impl Preprocessor {
         }
         
         let mut source = self.remove_line_by_sstr("%", source.clone());
+        source = self.remove_line_by_sstr(";", source);
         for _macro in macros.clone() {
             source = source.replace(_macro.0, _macro.1);
         }
