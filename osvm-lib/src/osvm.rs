@@ -886,7 +886,7 @@ impl OSVM {
         Error::None
     }
     
-    fn get_operands<'a>(self: &Self, tokens: Vec<&'a str>, len1: usize, len2: usize, line_num: &u64) -> Vec<&'a str> {
+    fn get_operands<'a>(self: &Self, tokens: Vec<&'a str>, len1: usize, len2: usize, line_num: &usize) -> Vec<&'a str> {
         let mut operands: Vec<&str> = tokens[0].trim().split(", ").collect();
         if operands.len() < len1 || operands.len() > len2 {
             eprintln!("[Error]: Invalid number of opcode arguments at line: {}", line_num);
@@ -904,6 +904,7 @@ impl OSVM {
         let lines: Vec<&str> = source.lines().collect();
         let mut line_num = 0;
         for line in lines {
+            let ic = 0;
             line_num += 1;
             
             let mut tokens: Vec<&str> = line.trim().splitn(2, char::is_whitespace).collect();
@@ -1162,10 +1163,17 @@ impl OSVM {
             
         }
         
+        for label in oasm.labels.clone() {
+            if label.name == "_start" {
+                self.pc = label.addr;
+            }
+        }
+        
         for i in 0..oasm.deferred_operands.len() {
             let label_addr = oasm.labels_contains(oasm.deferred_operands[i].label.as_str());
             self.program[oasm.deferred_operands[i].addr].op_operand = Some(Word { as_u64: label_addr.unwrap() as u64 });
         }
+        
     }
     
     pub fn load_program_from_memory(self: &mut Self, program: Vec<Opcode>) {

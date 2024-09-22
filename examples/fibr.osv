@@ -1,5 +1,10 @@
 %include "sys_libs.osv"
 
+should_never_run:
+    push #69
+    push #69
+    adds
+
 _start:
     ; counter
     mov r16, #17
