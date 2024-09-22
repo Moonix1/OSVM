@@ -1,12 +1,13 @@
 #![allow(unused, dead_code)]
 
-mod preprocessor;
+use crate::preprocessor;
 
-mod defines;
-mod oasm;
-mod opcode;
-mod error;
-mod file;
+use crate::utils::defines;
+use crate::utils::error;
+use crate::utils::file;
+
+use crate::oasm;
+use crate::opcode;
 
 use std::{
     alloc::alloc,
@@ -58,13 +59,13 @@ pub struct OSVM {
     stack: Vec<Word>,
     
     // Other
-    program: Vec<Opcode>,
+    pub program: Vec<Opcode>,
     
     halt: bool,
 }
 
 impl OSVM {
-    fn init() -> OSVM {
+    pub fn init() -> OSVM {
         OSVM {
             // Registers
             r0: Word { as_u64: 0 },
@@ -229,7 +230,7 @@ impl OSVM {
         }
     }
     
-    fn execute_opcode(self: &mut Self) -> Error {
+    pub fn execute_opcode(self: &mut Self) -> Error {
         if self.pc >= self.program.len() {
             return Error::InvalidOpcodeAccess;
         }
@@ -895,7 +896,11 @@ impl OSVM {
         operands
     }
     
-    fn translate_source(self: &mut Self, mut oasm: OASM, source: String) {
+    pub fn translate_source(self: &mut Self, mut oasm: OASM, input_path: String, source: String) {
+        let preprocessor = Preprocessor {};
+        let mut source = preprocessor.process_includes(input_path.clone(), source);
+        source = preprocessor.process_source(input_path.clone(), source);
+        
         let lines: Vec<&str> = source.lines().collect();
         let mut line_num = 0;
         for line in lines {
@@ -1163,7 +1168,7 @@ impl OSVM {
         }
     }
     
-    fn load_program_from_memory(self: &mut Self, program: Vec<Opcode>) {
+    pub fn load_program_from_memory(self: &mut Self, program: Vec<Opcode>) {
         self.program.extend_from_slice(&program);
     }
     
@@ -1215,7 +1220,7 @@ impl OSVM {
         }
     }
     
-    fn dump(self: &Self) {
+    pub fn dump(self: &Self) {
         println!("\n[Registers]:");
         println!("    r0:  {:?}", self.r0);
         println!("    r1:  {:?}", self.r1);
@@ -1246,7 +1251,7 @@ impl OSVM {
         }
     }
     
-    fn execute_program(self: &mut Self) {
+    pub fn execute_program(self: &mut Self) {
         while !self.halt {
             let err: Error = self.execute_opcode();
             if err != Error::None {
@@ -1256,7 +1261,7 @@ impl OSVM {
         }
     }
     
-    fn execute_program_debug(self: &mut Self) {
+    pub fn execute_program_debug(self: &mut Self) {
         while !self.halt {
             let err: Error = self.execute_opcode();
             let mut buffer = String::new();
@@ -1269,78 +1274,6 @@ impl OSVM {
                 println!("[Error]: {}", err.as_string());
                 exit(1);
             }
-        }
-    }
-}
-
-fn get_file_contents(file_path: &str) -> String {
-    let mut file: File = File::open(file_path).unwrap();
-    let mut contents = String::new();
-    let _ = file.read_to_string(&mut contents);
-    
-    contents
-}
-
-fn usage(program_file: &String) {
-    println!("[Usage]: {program_file} <SUBCOMMAND> <ARGS>");
-    println!("[Subcommands]:");
-    println!("  -   build <INPUT.OSV> <OUTPUT.VBIN>  ->  Compiles the program");
-    println!("  -   run   <INPUT.OSV> <OUTPUT.VBIN>  ->  Runs the program");
-    println!("  -   debug <INPUT.OSV> <OUTPUT.VBIN>  ->  Compiles the program");
-}
-
-fn shift(index: &mut usize, args: &Vec<String>) -> String {
-    let last_index = *index;
-    if last_index >= args.len() {
-        usage(&args[0]);
-        exit(1);
-    }
-    
-    *index += 1;
-    return args[last_index].clone();
-}
-
-fn main() {
-    let args: Vec<String> = env::args().collect();
-    let mut index = 0;
-    let program_file = shift(&mut index, &args);
-    
-    let mut preprocessor: Preprocessor = Preprocessor {};
-    let mut osvm: OSVM = OSVM::init();
-    let mut osvm_file: OSVMFile = OSVMFile {}; 
-    let oasm: OASM = OASM::init();
-    let opcode: Opcode = Opcode::init();
-    
-    let subcommand = shift(&mut index, &args);
-    
-    match subcommand.as_str() {
-        "build" | "run" | "debug" => {
-            println!("----------- Compiling -----------");
-            let input_path = shift(&mut index, &args);
-            let output_path = shift(&mut index, &args);
-            let isource =
-                preprocessor.process_includes(input_path.clone(), get_file_contents(&input_path));
-            let processed_source =
-                preprocessor.process_source(input_path.clone(), isource);
-            osvm.translate_source(oasm, processed_source.clone());
-            println!("[Converting File] => {} => {}", input_path, output_path);
-            osvm_file.save_program_to_file(&mut osvm, &output_path);
-            
-            if subcommand == "run" {
-                osvm_file.load_program_from_file(&mut osvm, &output_path);
-                println!("------------ Running ------------");
-                osvm.execute_program();
-            } else if subcommand == "debug" {
-                osvm_file.load_program_from_file(&mut osvm, &output_path);
-                println!("------ Running (Debugging) ------");
-                osvm.execute_program_debug();
-            }
-        }
-        
-        _ => {
-            usage(&program_file);
-            eprintln!("[Error]: Invalid Subcommand");
-            exit(1);
         }
     }
 }

@@ -1,10 +1,9 @@
-[package]
-name = "osvm"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-libc = "0.2"
+[workspace]
+resolver = "2"
+members = [
+    "osvm-lib",
+    "osvm"
+]
 
 [profile.release]
 opt-level = 3

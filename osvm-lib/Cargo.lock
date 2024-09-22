@@ -12,12 +12,5 @@ checksum = "d8adc4bb1803a324070e64a98ae98f38934d91957a99cfb3a43dcbc01bc56439"
 name = "osvm"
 version = "0.1.0"
 dependencies = [
- "osvm-lib",
-]
-
-[[package]]
-name = "osvm-lib"
-version = "0.1.0"
-dependencies = [
  "libc",
 ]

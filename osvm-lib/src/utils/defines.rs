@@ -1,4 +1,4 @@
-use std::{ffi::c_void, process::exit};
+use std::ffi::c_void;
 use std::fmt;
 
 #[derive(Clone, Copy)]

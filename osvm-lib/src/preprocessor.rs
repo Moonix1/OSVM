@@ -1,9 +1,9 @@
-use std::{env, f32::NAN, fs::File, io::Read, ops::{Range, RangeBounds}, os::unix::process::CommandExt, path::PathBuf, process::{exit, Command}};
+use std::{env, fs::File, io::Read, path::PathBuf, process::exit};
 
 pub struct Preprocessor {}
 
 impl Preprocessor {
-    fn remove_line_by_sstr(self: &Self, starts_with: &str,  source: String, index: usize) -> String {
+    fn remove_line_by_sstr(self: &Self, starts_with: &str,  source: String) -> String {
         let mut new_source = String::new();
         for line in source.lines() {
             if line.starts_with(starts_with) {
@@ -60,8 +60,8 @@ impl Preprocessor {
     pub fn process_includes(self: &Self, file_path: String, mut source: String) -> String {
         println!("[Preprocessor] => includes => {}", file_path);
         let mut index = 0;
-        for mut line in source.clone().lines() {
-            line.trim();
+        for line in source.clone().lines() {
+            let line = line.trim();
             if line.starts_with("%") {
                 if line.replace("%", "").starts_with("include") {
                     let path = self.get_string(line);
@@ -82,7 +82,7 @@ impl Preprocessor {
                     let mut include_source = String::new();
                     let _ = file.read_to_string(&mut include_source);
                     
-                    let mut isource = include_source + "\n";
+                    let isource = include_source + "\n";
                     source.insert_str(self.get_cindex(index + 1, source.as_str()), isource.as_str());
                 }
             }
@@ -90,17 +90,17 @@ impl Preprocessor {
             index += 1;
         }
         
-        source = self.remove_line_by_sstr("%include", source, index);
+        source = self.remove_line_by_sstr("%include", source);
         source
     }
     
-    pub fn process_source(self: &Self, file_path: String, mut source: String) -> String {
+    pub fn process_source(self: &Self, file_path: String, source: String) -> String {
         println!("[Preprocessor] => all => {}", file_path);
-        let mut index = 0;
+        let mut _index = 0;
         
         let mut macros = Vec::<(&str, &str)>::new();
-        for mut line in source.lines() {
-            line.trim();
+        for line in &mut source.lines() {
+            let line = line.trim();
             if line.starts_with("%") {
                 if line.replace("%", "").starts_with("define") {
                     let splitted: Vec<&str> = line.trim().split_whitespace().collect();
@@ -108,11 +108,10 @@ impl Preprocessor {
                 }
             }
             
-            index += 1;
+            _index += 1;
         }
         
-        let mut source = self.remove_line_by_sstr("%", source.clone(), index);
-        source = self.remove_line_by_sstr(";", source.clone(), index);
+        let mut source = self.remove_line_by_sstr("%", source.clone());
         for _macro in macros.clone() {
             source = source.replace(_macro.0, _macro.1);
         }

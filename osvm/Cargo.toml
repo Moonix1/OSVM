@@ -1,0 +1,7 @@
+[package]
+name = "osvm"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+osvm-lib = { path = "../osvm-lib" }

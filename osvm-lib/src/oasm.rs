@@ -1,5 +1,3 @@
-use crate::defines::Word;
-
 #[derive(Clone)]
 pub struct Label {
     pub name: String,

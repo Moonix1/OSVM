@@ -1,9 +1,9 @@
-use crate::{OSVM, opcode::Opcode};
+use crate::{osvm::OSVM, opcode::Opcode};
 
 use std::{ffi::{c_void, CString}, process::exit};
 use libc::{
     fclose, ferror, fopen, fread,
-    free, fseek, ftell, fwrite, malloc,
+    fseek, ftell, fwrite,
     SEEK_END, SEEK_SET
 };
 

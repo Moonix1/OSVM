@@ -1,4 +1,4 @@
-use crate::defines::*;
+use crate::utils::defines::*;
 
 #[derive(Debug, Clone, Copy)]
 pub enum OpcodeType {
