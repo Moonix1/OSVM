@@ -1,20 +1,42 @@
 %define alloc #1
 %define free #2
-%define print_num #3
-%define print_ptr #4
+%define print_u64 #3
+%define print_i64 #4
+%define print_f64 #5
+%define print_ptr #6
 
 ; System functions as labels
 ; for ease of use I guess
 
 ; Note if you are using registers
 ; the sys function will take in r16
-rprintn:
-    mov r7, print_num
+rprintu:
+    mov r7, print_u64
     sysf r16
     ret
     
-sprintn:
-    mov r7, print_num
+sprintu:
+    mov r7, print_u64
+    sysf
+    ret
+    
+rprinti:
+    mov r7, print_i64
+    sysf r16
+    ret
+    
+sprinti:
+    mov r7, print_i64
+    sysf
+    ret
+    
+rprintf:
+    mov r7, print_f64
+    sysf r16
+    ret
+    
+sprintf:
+    mov r7, print_f64
     sysf
     ret
     

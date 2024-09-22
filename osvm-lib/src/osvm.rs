@@ -53,7 +53,7 @@ pub struct OSVM {
     r15: Word,
     r16: Word,
     
-    tsr: usize,
+    pub tsr: usize,
     rspc: usize,
     pc: usize,
 
@@ -108,7 +108,9 @@ impl OSVM {
     pub fn init_default_sysf(self: &mut Self) {
         self.sys_functions = vec![
             SystemFunctions::print_ptr,
-            SystemFunctions::print_num,
+            SystemFunctions::print_f64,
+            SystemFunctions::print_i64,
+            SystemFunctions::print_u64,
             SystemFunctions::free,
             SystemFunctions::alloc,
         ]
@@ -236,11 +238,13 @@ impl OSVM {
         }
     }
     
-    fn set_tsr(self: &mut Self, value: Word) {
+    pub fn set_tsr(self: &mut Self, value: Word) {
         match value {
             Word { as_u64: _ } => self.tsr = 0,
             Word { as_i64: _ } => self.tsr = 1,
             Word { as_f64: _ } => self.tsr = 2,
+            
+            Word { as_ptr: _ } => self.tsr = 3,
         }
     }
     

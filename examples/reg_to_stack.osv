@@ -6,7 +6,7 @@ _start:
     mov r1, #53
     
     ; Set system function to print_num
-    mov r7, print_num
+    mov r7, print_i64
     
     ; Pushes the registers values onto the stack
     push r0

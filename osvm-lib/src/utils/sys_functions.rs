@@ -34,7 +34,6 @@ impl SystemFunctions {
                     exit(1);
                 }
                 
-                let a = osvm.stack.len() - 1;
                 free(osvm.stack.pop().unwrap().as_ptr as *mut c_void);
             } else {
                 free(osvm.find_register(opcode, 0).unwrap().as_ptr as *mut c_void);
@@ -43,24 +42,32 @@ impl SystemFunctions {
         }
     }
     
-    pub fn print_num(osvm: &mut OSVM, opcode: &Opcode, reg: Vec<String>) {
+    pub fn print_u64(osvm: &mut OSVM, opcode: &Opcode, reg: Vec<String>) {
         unsafe {
             if !reg.is_empty() {
-                match osvm.find_register(opcode, 0).unwrap() {
-                    Word { as_u64: _ } => println!("{}", osvm.find_register(opcode, 0).unwrap().as_u64),
-                    Word { as_i64: _ } => println!("{}", osvm.find_register(opcode, 0).unwrap().as_i64),
-                    Word { as_f64: _ } => println!("{}", osvm.find_register(opcode, 0).unwrap().as_f64),
-                    
-                    _ => {}
-                }
+                println!("{}", osvm.find_register(opcode, 0).unwrap().as_u64);
             } else {
-                match osvm.stack[osvm.stack.len() - 1] {
-                    Word { as_u64: _ } => println!("{}", osvm.stack[osvm.stack.len() - 1].as_u64),
-                    Word { as_i64: _ } => println!("{}", osvm.stack[osvm.stack.len() - 1].as_i64),
-                    Word { as_f64: _ } => println!("{}", osvm.stack[osvm.stack.len() - 1].as_f64),
-                    
-                    _ => {}
-                }
+                println!("{}", osvm.stack[osvm.stack.len() - 1].as_u64);
+            }
+        }
+    }
+    
+    pub fn print_i64(osvm: &mut OSVM, opcode: &Opcode, reg: Vec<String>) {
+        unsafe {
+            if !reg.is_empty() {
+                println!("{}", osvm.find_register(opcode, 0).unwrap().as_i64);
+            } else {
+                println!("{}", osvm.stack[osvm.stack.len() - 1].as_i64);
+            }
+        }
+    }
+    
+    pub fn print_f64(osvm: &mut OSVM, opcode: &Opcode, reg: Vec<String>) {
+        unsafe {
+            if !reg.is_empty() {
+                println!("{}", osvm.find_register(opcode, 0).unwrap().as_f64);
+            } else {
+                println!("{}", osvm.stack[osvm.stack.len() - 1].as_f64);
             }
         }
     }
@@ -68,17 +75,9 @@ impl SystemFunctions {
     pub fn print_ptr(osvm: &mut OSVM, opcode: &Opcode, reg: Vec<String>) {
         unsafe {
             if !reg.is_empty() {
-                match osvm.find_register(opcode, 0).unwrap() {
-                    Word { as_ptr: _ } => println!("{:?}", osvm.find_register(opcode, 0).unwrap().as_ptr),
-                    
-                    _ => {}
-                }
+                    println!("{:?}", osvm.find_register(opcode, 0).unwrap().as_ptr);
             } else {
-                match osvm.stack[osvm.stack.len() - 1] {
-                    Word { as_ptr: _ } => println!("{:?}", osvm.stack[osvm.stack.len() - 1].as_ptr),
-                    
-                    _ => {}
-                }
+                println!("{:?}", osvm.stack[osvm.stack.len() - 1].as_ptr);
             }
         }
     }

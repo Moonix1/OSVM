@@ -2,22 +2,22 @@
 
 _start:
     ; counter
-    mov r15, #17
+    mov r15, #200
     
     mov r0, #0
     mov r16, r0
-    call rprintn
+    call rprintu
     
     mov r1, #1
     mov r16, r1
-    call rprintn
+    call rprintu
 loop:
     add r0, r0, r1
     mov r16, r0
     srg r0, r1
     
     ; Print fibbonacci number using rprintn system function
-    call rprintn
+    call rprintu
     
     ; Decrement counter
     dec r15
