@@ -783,7 +783,7 @@ impl OSVM {
                     if a.as_u64 == 0 {
                         self.pc = opcode.op_operand.unwrap().as_usize;
                     } else {
-                        self.pc += 1
+                        self.pc += 1;
                     }
                 }
             }
@@ -828,6 +828,296 @@ impl OSVM {
                 unsafe {
                     self.pc = opcode.op_operand.unwrap().as_usize;
                 }
+            }
+            
+            
+            OpcodeType::And => {
+                if opcode.op_regs.is_empty() {
+                    if self.stack.len() < 2 {
+                        return Error::StackUnderflow;
+                    }
+                    
+                    let a = self.stack.pop().unwrap();
+                    let b = self.stack.pop().unwrap();
+                    self.set_tsr(b);
+                    unsafe {
+                        match self.tsr {
+                            0 => self.stack.push(Word { as_u64: b.as_u64 & a.as_u64 }),
+                            1 => self.stack.push(Word { as_i64: b.as_i64 & a.as_i64 }),
+                            
+                            _ => {}
+                        }
+                    }
+                } else {
+                    if opcode.op_regs.len() < 1 {
+                        return Error::RegisterUnderflow;
+                    } else if opcode.op_regs.len() > 3 {
+                        return Error::RegisterOverflow;
+                    }
+                    
+                    let reg1 = *self.find_register(&opcode, 1).unwrap();
+                    let reg2 = *self.find_register(&opcode, 2).unwrap();
+                    self.set_tsr(reg1);
+                    unsafe {
+                        match self.tsr {
+                            0 => {
+                                let sum = reg1.as_u64 & reg2.as_u64;
+                        
+                                let dest = self.find_register(&opcode, 0).unwrap();
+                                *dest = Word { as_u64: sum };
+                            }
+                            1 => {
+                                let sum = reg1.as_i64 ^ reg2.as_i64;
+                                
+                                let dest = self.find_register(&opcode, 0).unwrap();
+                                *dest = Word { as_i64: sum };
+                            }
+        
+                            _ => {}
+                        }
+                    }
+                }
+                self.pc += 1
+            }
+            OpcodeType::Or => {
+                if opcode.op_regs.is_empty() {
+                    if self.stack.len() < 2 {
+                        return Error::StackUnderflow;
+                    }
+                    
+                    let a = self.stack.pop().unwrap();
+                    let b = self.stack.pop().unwrap();
+                    self.set_tsr(b);
+                    unsafe {
+                        match self.tsr {
+                            0 => self.stack.push(Word { as_u64: b.as_u64 | a.as_u64 }),
+                            1 => self.stack.push(Word { as_i64: b.as_i64 | a.as_i64 }),
+                            
+                            _ => {}
+                        }
+                    }
+                } else {
+                    if opcode.op_regs.len() < 1 {
+                        return Error::RegisterUnderflow;
+                    } else if opcode.op_regs.len() > 3 {
+                        return Error::RegisterOverflow;
+                    }
+                    
+                    let reg1 = *self.find_register(&opcode, 1).unwrap();
+                    let reg2 = *self.find_register(&opcode, 2).unwrap();
+                    self.set_tsr(reg1);
+                    unsafe {
+                        match self.tsr {
+                            0 => {
+                                let sum = reg1.as_u64 | reg2.as_u64;
+                        
+                                let dest = self.find_register(&opcode, 0).unwrap();
+                                *dest = Word { as_u64: sum };
+                            }
+                            1 => {
+                                let sum = reg1.as_i64 | reg2.as_i64;
+                                
+                                let dest = self.find_register(&opcode, 0).unwrap();
+                                *dest = Word { as_i64: sum };
+                            }
+        
+                            _ => {}
+                        }
+                    }
+                }
+                self.pc += 1
+            }
+            OpcodeType::Xor => {
+                if opcode.op_regs.is_empty() {
+                    if self.stack.len() < 2 {
+                        return Error::StackUnderflow;
+                    }
+                    
+                    let a = self.stack.pop().unwrap();
+                    let b = self.stack.pop().unwrap();
+                    self.set_tsr(b);
+                    unsafe {
+                        match self.tsr {
+                            0 => self.stack.push(Word { as_u64: b.as_u64 ^ a.as_u64 }),
+                            1 => self.stack.push(Word { as_i64: b.as_i64 ^ a.as_i64 }),
+                            
+                            _ => {}
+                        }
+                    }
+                } else {
+                    if opcode.op_regs.len() < 1 {
+                        return Error::RegisterUnderflow;
+                    } else if opcode.op_regs.len() > 3 {
+                        return Error::RegisterOverflow;
+                    }
+                    
+                    let reg1 = *self.find_register(&opcode, 1).unwrap();
+                    let reg2 = *self.find_register(&opcode, 2).unwrap();
+                    self.set_tsr(reg1);
+                    unsafe {
+                        match self.tsr {
+                            0 => {
+                                let sum = reg1.as_u64 ^ reg2.as_u64;
+                        
+                                let dest = self.find_register(&opcode, 0).unwrap();
+                                *dest = Word { as_u64: sum };
+                            }
+                            1 => {
+                                let sum = reg1.as_i64 ^ reg2.as_i64;
+                                
+                                let dest = self.find_register(&opcode, 0).unwrap();
+                                *dest = Word { as_i64: sum };
+                            }
+        
+                            _ => {}
+                        }
+                    }
+                }
+                self.pc += 1
+            }
+            
+            OpcodeType::Shr => {
+                if opcode.op_regs.is_empty() {
+                    if self.stack.len() < 2 {
+                        return Error::StackUnderflow;
+                    }
+                    
+                    let a = self.stack.pop().unwrap();
+                    let b = self.stack.pop().unwrap();
+                    self.set_tsr(b);
+                    unsafe {
+                        match self.tsr {
+                            0 => self.stack.push(Word { as_u64: b.as_u64 >> a.as_u64 }),
+                            1 => self.stack.push(Word { as_i64: b.as_i64 >> a.as_i64 }),
+                            
+                            _ => {}
+                        }
+                    }
+                } else {
+                    if opcode.op_regs.len() < 1 {
+                        return Error::RegisterUnderflow;
+                    } else if opcode.op_regs.len() > 3 {
+                        return Error::RegisterOverflow;
+                    }
+                    
+                    let reg1 = *self.find_register(&opcode, 1).unwrap();
+                    let reg2 = *self.find_register(&opcode, 2).unwrap();
+                    self.set_tsr(reg1);
+                    unsafe {
+                        match self.tsr {
+                            0 => {
+                                let sum = reg1.as_u64 >> reg2.as_u64;
+                        
+                                let dest = self.find_register(&opcode, 0).unwrap();
+                                *dest = Word { as_u64: sum };
+                            }
+                            1 => {
+                                let sum = reg1.as_i64 >> reg2.as_i64;
+                                
+                                let dest = self.find_register(&opcode, 0).unwrap();
+                                *dest = Word { as_i64: sum };
+                            }
+        
+                            _ => {}
+                        }
+                    }
+                }
+                self.pc += 1
+            }
+            OpcodeType::Shl => {
+                if opcode.op_regs.is_empty() {
+                    if self.stack.len() < 2 {
+                        return Error::StackUnderflow;
+                    }
+                    
+                    let a = self.stack.pop().unwrap();
+                    let b = self.stack.pop().unwrap();
+                    self.set_tsr(b);
+                    unsafe {
+                        match self.tsr {
+                            0 => self.stack.push(Word { as_u64: b.as_u64 << a.as_u64 }),
+                            1 => self.stack.push(Word { as_i64: b.as_i64 << a.as_i64 }),
+                            
+                            _ => {}
+                        }
+                    }
+                } else {
+                    if opcode.op_regs.len() < 1 {
+                        return Error::RegisterUnderflow;
+                    } else if opcode.op_regs.len() > 3 {
+                        return Error::RegisterOverflow;
+                    }
+                    
+                    let reg1 = *self.find_register(&opcode, 1).unwrap();
+                    let reg2 = *self.find_register(&opcode, 2).unwrap();
+                    self.set_tsr(reg1);
+                    unsafe {
+                        match self.tsr {
+                            0 => {
+                                let sum = reg1.as_u64 << reg2.as_u64;
+                        
+                                let dest = self.find_register(&opcode, 0).unwrap();
+                                *dest = Word { as_u64: sum };
+                            }
+                            1 => {
+                                let sum = reg1.as_i64 << reg2.as_i64;
+                                
+                                let dest = self.find_register(&opcode, 0).unwrap();
+                                *dest = Word { as_i64: sum };
+                            }
+        
+                            _ => {}
+                        }
+                    }
+                }
+                self.pc += 1
+            }
+            
+            OpcodeType::Not => {
+                if opcode.op_regs.is_empty() {
+                    if self.stack.len() < 1 {
+                        return Error::StackUnderflow;
+                    }
+                    
+                    let a = self.stack.pop().unwrap();
+                    self.set_tsr(a);
+                    unsafe {
+                        match self.tsr {
+                            0 => self.stack.push(Word { as_u64: !a.as_u64 }),
+                            1 => self.stack.push(Word { as_i64: !a.as_i64 }),
+                            
+                            _ => {}
+                        }
+                    }
+                } else {
+                    if opcode.op_regs.len() < 1 {
+                        return Error::RegisterUnderflow;
+                    } else if opcode.op_regs.len() > 3 {
+                        return Error::RegisterOverflow;
+                    }
+                    
+                    let reg1 = *self.find_register(&opcode, 1).unwrap();
+                    self.set_tsr(reg1);
+                    unsafe {
+                        match self.tsr {
+                            0 => {
+                                let sum = !reg1.as_u64;
+                        
+                                let dest = self.find_register(&opcode, 0).unwrap();
+                                *dest = Word { as_u64: sum };
+                            }
+                            1 => {
+                                let sum = !reg1.as_i64;
+                                
+                                let dest = self.find_register(&opcode, 0).unwrap();
+                                *dest = Word { as_i64: sum };
+                            }
+        
+                            _ => {}
+                        }
+                    }
+                }
+                self.pc += 1
             }
             
             OpcodeType::Pop => {
@@ -1101,13 +1391,13 @@ impl OSVM {
                         } else {
                             oasm.deferred_operands_push(tokens[0], self.program.len());
                             match inst_name {
-                                JT => {
+                                JTS => {
                                     self.program.push(Opcode { op_type: OpcodeType::Jts, op_operand: None, op_regs: Vec::new() });
                                 }
-                                JZ => {
+                                JZS => {
                                     self.program.push(Opcode { op_type: OpcodeType::Jzs, op_operand: None, op_regs: Vec::new() });
                                 }
-                                JNZ => {
+                                JNZS => {
                                     self.program.push(Opcode { op_type: OpcodeType::Jnzs, op_operand: None, op_regs: Vec::new() });
                                 }
                                 
@@ -1136,8 +1426,61 @@ impl OSVM {
                         self.program.push(Opcode { op_type: OpcodeType::Call, op_operand: None, op_regs: Vec::new() });
                     }
                     
+                    AND => {
+                        println!("{:?}", tokens);
+                        if tokens.len() > 0 && tokens[0].starts_with('r') && !tokens.is_empty() {
+                            let operand = self.get_operands(tokens.clone(), 3, 3, &line_num);
+                            self.program.push(Opcode { op_type: OpcodeType::And, op_operand: None, op_regs: vec![operand[0].to_string(), operand[1].to_string(), operand[2].to_string()] });
+                        } else {
+                            self.program.push(Opcode { op_type: OpcodeType::And, op_operand: None, op_regs: Vec::new() });
+                        }
+                    }
+                    
+                    OR => {
+                        if tokens.len() > 0 && tokens[0].starts_with('r') && !tokens.is_empty() {
+                            let operand = self.get_operands(tokens.clone(), 3, 3, &line_num);
+                            self.program.push(Opcode { op_type: OpcodeType::Or, op_operand: None, op_regs: vec![operand[0].to_string(), operand[1].to_string(), operand[2].to_string()] });
+                        } else {
+                            self.program.push(Opcode { op_type: OpcodeType::Or, op_operand: None, op_regs: Vec::new() });
+                        }
+                    }
+                    XOR => {
+                        if tokens.len() > 0 && tokens[0].starts_with('r') && !tokens.is_empty() {
+                            let operand = self.get_operands(tokens.clone(), 3, 3, &line_num);
+                            self.program.push(Opcode { op_type: OpcodeType::Xor, op_operand: None, op_regs: vec![operand[0].to_string(), operand[1].to_string(), operand[2].to_string()] });
+                        } else {
+                            self.program.push(Opcode { op_type: OpcodeType::Xor, op_operand: None, op_regs: Vec::new() });
+                        }
+                    }
+                    
+                    SHL => {
+                        if tokens.len() > 0 && tokens[0].starts_with('r') && !tokens.is_empty() {
+                            let operand = self.get_operands(tokens.clone(), 3, 3, &line_num);
+                            self.program.push(Opcode { op_type: OpcodeType::Shl, op_operand: None, op_regs: vec![operand[0].to_string(), operand[1].to_string(), operand[2].to_string()] });
+                        } else {
+                            self.program.push(Opcode { op_type: OpcodeType::Shl, op_operand: None, op_regs: Vec::new() });
+                        }
+                    }
+                    SHR => {
+                        if tokens.len() > 0 && tokens[0].starts_with('r') && !tokens.is_empty() {
+                            let operand = self.get_operands(tokens.clone(), 3, 3, &line_num);
+                            self.program.push(Opcode { op_type: OpcodeType::Shr, op_operand: None, op_regs: vec![operand[0].to_string(), operand[1].to_string(), operand[2].to_string()] });
+                        } else {
+                            self.program.push(Opcode { op_type: OpcodeType::Shr, op_operand: None, op_regs: Vec::new() });
+                        }
+                    }
+                    
+                    NOT => {
+                        if tokens.len() > 0 && tokens[0].starts_with('r') && !tokens.is_empty() {
+                            let operand = self.get_operands(tokens.clone(), 2, 2, &line_num);
+                            self.program.push(Opcode { op_type: OpcodeType::Not, op_operand: None, op_regs: vec![operand[0].to_string(), operand[1].to_string()] });
+                        } else {
+                            self.program.push(Opcode { op_type: OpcodeType::Not, op_operand: None, op_regs: Vec::new() });
+                        }
+                    }
+                    
                     POP => {
-                        if tokens.len() > 0 && tokens[0].starts_with('r') {
+                        if tokens.len() > 0 && tokens[0].starts_with('r') && !tokens.is_empty() {
                             self.program.push(Opcode { op_type: OpcodeType::Pop, op_operand: None, op_regs: vec![tokens[0].to_string()] });
                         } else {
                             self.program.push(Opcode { op_type: OpcodeType::Pop, op_operand: None, op_regs: Vec::new() });

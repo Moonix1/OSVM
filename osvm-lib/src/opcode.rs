@@ -50,6 +50,15 @@ pub enum OpcodeType {
     Jmp,
     Call,
     
+    And,
+    Or,
+    Xor,
+    
+    Shr,
+    Shl,
+    
+    Not,
+    
     Pop,
     
     Ret,

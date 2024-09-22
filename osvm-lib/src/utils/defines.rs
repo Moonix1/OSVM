@@ -61,7 +61,6 @@ pub const SYSF: &str = "sysf";
 
 // Stack opcodes
 pub const PUSH: &str = "push";
-pub const POP: &str = "pop";
 pub const ADDS: &str = "adds";
 pub const SUBS: &str = "subs";
 pub const MULS: &str = "muls";
@@ -70,7 +69,7 @@ pub const EQUALS: &str = "eqs";
 pub const DUPL: &str = "dupl";
 pub const JTS: &str = "jts";
 pub const JZS: &str = "jzs";
-pub const JNZS: &str = "jzs";
+pub const JNZS: &str = "jnzs";
 
 pub const SWC: &str = "swc";
 
@@ -78,6 +77,13 @@ pub const SWC: &str = "swc";
 // Universal opcode
 pub const JMP: &str = "jmp";
 pub const CALL: &str = "call";
+pub const AND: &str = "and";
+pub const OR: &str = "or";
+pub const XOR: &str = "xor";
+pub const SHR: &str = "shr";
+pub const SHL: &str = "shl";
+pub const NOT: &str = "not";
+pub const POP: &str = "pop";
 pub const RET: &str = "ret";
 pub const HLT: &str = "hlt";
 
