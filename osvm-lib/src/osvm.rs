@@ -625,6 +625,14 @@ impl OSVM {
                                 self.print_num(reg);
                             }
                         }
+                        4 => {
+                            if opcode.op_regs.is_empty() {
+                                self.print_ptr(self.stack[self.stack.len() - 1]);
+                            } else {
+                                let reg = *self.find_register(&opcode, 0).unwrap();
+                                self.print_ptr(reg);
+                            }
+                        }
                         
                         _ => {}
                     }
@@ -1225,6 +1233,12 @@ impl OSVM {
                 
                 _ => {}
             }
+        }
+    }
+    
+    fn print_ptr(self: &Self, num: Word) {
+        unsafe {
+            println!("{:?}", num.as_ptr)
         }
     }
     

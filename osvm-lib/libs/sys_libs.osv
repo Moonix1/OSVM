@@ -1,6 +1,7 @@
 %define alloc #1
 %define free #2
 %define print_num #3
+%define print_ptr #4
 
 ; System functions as labels
 ; for ease of use I guess
@@ -14,6 +15,16 @@ rprintn:
     
 sprintn:
     mov r7, print_num
+    sysf
+    ret
+    
+rprintp:
+    mov r7, print_ptr
+    sysf r16
+    ret
+    
+sprintp:
+    mov r7, print_ptr
     sysf
     ret
     
