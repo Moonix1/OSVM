@@ -7,20 +7,19 @@ should_never_run:
 
 _start:
     ; counter
-    mov r16, #17
+    mov r15, #17
     
     mov r0, #0
     mov r1, #1
 loop:
     add r0, r0, r1
-    mov r2, r0
+    mov r16, r0
     srg r0, r1
     
-    ; Print fibbonacci number using print_num system function
-    mov r7, print_num
-    sysf r2
+    ; Print fibbonacci number using rprintn system function
+    call rprintn
     
     ; Decrement counter
-    dec r16
-    jnz loop, r16
+    dec r15
+    jnz loop, r15
     hlt

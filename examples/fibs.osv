@@ -10,8 +10,7 @@ loop:
     adds
     
     ; Print fibbonacci number using print_num system function
-    mov r7, print_num
-    sysf
+    call sprintn
     
     ; Decrement the counter
     dec r0

@@ -1,3 +1,38 @@
 %define alloc #1
 %define free #2
 %define print_num #3
+
+; System functions as labels
+; for ease of use I guess
+
+; Note if you are using registers
+; the sys function will take in r16
+rprintn:
+    mov r7, print_num
+    sysf r16
+    ret
+    
+sprintn:
+    mov r7, print_num
+    sysf
+    ret
+    
+rfree:
+    mov r7, free
+    sysf r16
+    ret
+    
+sfree:
+    mov r7, free
+    sysf
+    ret
+    
+ralloc:
+    mov r7, alloc
+    sysf r16
+    ret
+    
+salloc:
+    mov r7, alloc
+    sysf
+    ret
