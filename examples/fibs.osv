@@ -2,8 +2,12 @@
 
 _start: 
     mov r0, #17
+    
     push #0
+    call sprintn
+    
     push #1
+    call sprintn
 loop:
     dupl 1
     dupl 1
