@@ -50,6 +50,9 @@ pub enum OpcodeType {
     Jmp,
     Call,
     
+    Read,
+    Write,
+    
     And,
     Or,
     Xor,

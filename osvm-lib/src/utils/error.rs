@@ -13,6 +13,8 @@ pub enum Error {
     InvalidSection,
     InvalidSysFunction,
     
+    ErrIllegalMemoryAccess,
+    
     DivByZero,
 }
 
@@ -31,6 +33,8 @@ impl Error {
             Error::InvalidRegister => return "InvalidRegister".to_string(),
             Error::InvalidSection => return "InvalidSection".to_string(),
             Error::InvalidSysFunction => return "InvalidSysFunction".to_string(),
+            
+            Error::ErrIllegalMemoryAccess => return "ErrIllegalMemoryAccess".to_string(),
             
             Error::DivByZero => return "DivByZero".to_string(),
         }

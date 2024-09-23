@@ -59,6 +59,7 @@ pub struct OSVM {
 
     // Stack
     pub stack: Vec<Word>,
+    memory: Vec<u8>,
     
     // Other
     pub program: Vec<Opcode>,
@@ -95,6 +96,7 @@ impl OSVM {
             
             // Stack
             stack: Vec::new(),
+            memory: vec![0 ; MEMORY_CAPACITY],
             
             // Other
             program: Vec::new(),
@@ -830,6 +832,217 @@ impl OSVM {
                 }
             }
             
+            OpcodeType::Read => {
+                unsafe {
+                    match opcode.op_operand.unwrap().as_u64 {
+                        8 => {}
+                        16 => {}
+                        32 => {}
+                        64 => {}
+                        
+                        _ => {
+                            eprintln!("[Error]: invalid read size: `{}`", opcode.op_operand.unwrap().as_u64);
+                            exit(1);
+                        }
+                    }
+                }
+                
+                if opcode.op_regs.is_empty() {
+                    if self.stack.len() < 1 {
+                        return Error::StackUnderflow;
+                    }
+                    
+                    unsafe {
+                        let addr = self.stack.pop().unwrap();
+                        self.set_tsr(addr);
+                        match opcode.op_operand.unwrap().as_u64 {
+                            8 => {
+                                if addr.as_usize >= self.memory.capacity() {
+                                    return Error::ErrIllegalMemoryAccess;
+                                }
+                                self.stack.push(Word { as_u64: self.memory[addr.as_usize] as u64 });
+                            }
+                            16 => {
+                                if addr.as_usize >= self.memory.capacity() - 1 {
+                                    return Error::ErrIllegalMemoryAccess;
+                                }
+                                
+                                let value = u16::from_ne_bytes(self.memory[addr.as_usize..addr.as_usize + 2].try_into().unwrap());
+                                self.stack.push(Word { as_u64: value as u64 });
+                            }
+                            32 => {
+                                if addr.as_usize >= self.memory.capacity() - 3 {
+                                    return Error::ErrIllegalMemoryAccess;
+                                }
+                                
+                                let value = u32::from_ne_bytes(self.memory[addr.as_usize..addr.as_usize + 4].try_into().unwrap());
+                                self.stack.push(Word { as_u64: value as u64 });
+                            }
+                            64 => {
+                                if addr.as_usize >= self.memory.capacity() - 7 {
+                                    return Error::ErrIllegalMemoryAccess;
+                                }
+                                
+                                let value = u64::from_ne_bytes(self.memory[addr.as_usize..addr.as_usize + 8].try_into().unwrap());
+                                self.stack.push(Word { as_u64: value });
+                            }
+                            
+                            _ => {}
+                        }
+                    }
+                } else {
+                    if opcode.op_regs.len() < 1 {
+                        return Error::RegisterUnderflow;
+                    } else if opcode.op_regs.len() > 2 {
+                        return Error::RegisterOverflow;
+                    }
+                    
+                    let reg1 = *self.find_register(&opcode, 2).unwrap();
+                    unsafe {
+                        self.set_tsr(reg1);
+                        match opcode.op_operand.unwrap().as_u64 {
+                            8 => {
+                                if reg1.as_usize >= self.memory.capacity() {
+                                    return Error::ErrIllegalMemoryAccess;
+                                }
+                                
+                                self.assign_register(&opcode, 1, Word { as_u64: self.memory[reg1.as_usize] as u64 });
+                            }
+                            16 => {
+                                if reg1.as_usize >= self.memory.capacity() - 1 {
+                                    return Error::ErrIllegalMemoryAccess;
+                                }
+                                
+                                let value = u16::from_ne_bytes(self.memory[reg1.as_usize..reg1.as_usize + 2].try_into().unwrap());
+                                self.assign_register(&opcode, 1, Word { as_u64: value as u64 });
+                            }
+                            32 => {
+                                if reg1.as_usize >= self.memory.capacity() - 3 {
+                                    return Error::ErrIllegalMemoryAccess;
+                                }
+                                
+                                let value = u32::from_ne_bytes(self.memory[reg1.as_usize..reg1.as_usize + 4].try_into().unwrap());
+                                self.assign_register(&opcode, 1, Word { as_u64: value as u64 });
+                            }
+                            64 => {
+                                if reg1.as_usize >= self.memory.capacity() - 7 {
+                                    return Error::ErrIllegalMemoryAccess;
+                                }
+                                
+                                let value = u64::from_ne_bytes(self.memory[reg1.as_usize..reg1.as_usize + 8].try_into().unwrap());
+                                self.assign_register(&opcode, 1, Word { as_u64: value });
+                            }
+                            
+                            _ => {}
+                        }
+                    }
+                }
+                self.pc += 1
+            }
+            OpcodeType::Write => {
+                unsafe {
+                    match opcode.op_operand.unwrap().as_u64 {
+                        8 => {}
+                        16 => {}
+                        32 => {}
+                        64 => {}
+                        
+                        _ => {
+                            eprintln!("[Error]: invalid read size: `{}`", opcode.op_operand.unwrap().as_u64);
+                            exit(1);
+                        }
+                    }
+                }
+                
+                if opcode.op_regs.is_empty() {
+                    if self.stack.len() < 1 {
+                        return Error::StackUnderflow;
+                    }
+                    
+                    unsafe {
+                        let addr = self.stack.pop().unwrap();
+                        let value = self.stack.pop().unwrap();
+                        self.set_tsr(value);
+                        match opcode.op_operand.unwrap().as_u64 {
+                            8 => {
+                                if addr.as_usize >= self.memory.capacity() {
+                                    return Error::ErrIllegalMemoryAccess;
+                                }
+                                
+                                self.memory[addr.as_usize] = value.as_u64 as u8;
+                            }
+                            16 => {
+                                if addr.as_usize >= self.memory.capacity() - 1 {
+                                    return Error::ErrIllegalMemoryAccess;
+                                }
+                                
+                                self.memory[addr.as_usize..addr.as_usize + 2].copy_from_slice(&(value.as_u64 as u16).to_ne_bytes());
+                            }
+                            32 => {
+                                if addr.as_usize >= self.memory.capacity() - 3 {
+                                    return Error::ErrIllegalMemoryAccess;
+                                }
+                                
+                                self.memory[addr.as_usize..addr.as_usize + 4].copy_from_slice(&(value.as_u64 as u32).to_ne_bytes());
+                            }
+                            64 => {
+                                if addr.as_usize >= self.memory.capacity() - 7 {
+                                    return Error::ErrIllegalMemoryAccess;
+                                }
+                                
+                                self.memory[addr.as_usize..addr.as_usize + 8].copy_from_slice(&value.as_u64.to_ne_bytes());
+                            }
+                            
+                            _ => {}
+                        }
+                    }
+                } else {
+                    if opcode.op_regs.len() < 1 {
+                        return Error::RegisterUnderflow;
+                    } else if opcode.op_regs.len() > 2 {
+                        return Error::RegisterOverflow;
+                    }
+                    
+                    let addr = *self.find_register(&opcode, 0).unwrap();
+                    let reg1 = *self.find_register(&opcode, 1).unwrap();
+                    unsafe {
+                        self.set_tsr(reg1);
+                        match opcode.op_operand.unwrap().as_u64 {
+                            8 => {
+                                if reg1.as_usize >= self.memory.capacity() {
+                                    return Error::ErrIllegalMemoryAccess;
+                                }
+                                
+                                self.memory[addr.as_usize] = reg1.as_u64 as u8;
+                            }
+                            16 => {
+                                if reg1.as_usize >= self.memory.capacity() - 1 {
+                                    return Error::ErrIllegalMemoryAccess;
+                                }
+                                
+                                self.memory[addr.as_usize..addr.as_usize + 2].copy_from_slice(&(reg1.as_u64 as u16).to_ne_bytes());
+                            }
+                            32 => {
+                                if reg1.as_usize >= self.memory.capacity() - 3 {
+                                    return Error::ErrIllegalMemoryAccess;
+                                }
+                                
+                                self.memory[addr.as_usize..addr.as_usize + 4].copy_from_slice(&(reg1.as_u64 as u32).to_ne_bytes());
+                            }
+                            64 => {
+                                if reg1.as_usize >= self.memory.capacity() - 7 {
+                                    return Error::ErrIllegalMemoryAccess;
+                                }
+                                
+                                self.memory[addr.as_usize..addr.as_usize + 8].copy_from_slice(&(reg1.as_u64 as u64).to_ne_bytes());
+                            }
+                            
+                            _ => {}
+                        }
+                    }
+                }
+                self.pc += 1
+            }
             
             OpcodeType::And => {
                 if opcode.op_regs.is_empty() {
@@ -1426,8 +1639,24 @@ impl OSVM {
                         self.program.push(Opcode { op_type: OpcodeType::Call, op_operand: None, op_regs: Vec::new() });
                     }
                     
+                    READ => {
+                        if tokens.len() > 1 && tokens[1].starts_with('r') && !tokens.is_empty() {
+                            let operand = self.get_operands(tokens.clone(), 3, 3, &line_num);
+                            self.program.push(Opcode { op_type: OpcodeType::Read, op_operand: Some(Word { as_u64: (operand[0].replace(CONST, "").parse().unwrap()) }), op_regs: vec![operand[1].to_string(), operand[2].to_string()] });
+                        } else {
+                            self.program.push(Opcode { op_type: OpcodeType::Read, op_operand: Some(Word { as_u64: (tokens[0].replace(CONST, "").parse().unwrap()) }), op_regs: Vec::new() });
+                        }
+                    }
+                    WRITE => {
+                        if tokens.len() > 0 && tokens[0].contains('r') && !tokens.is_empty() {
+                            let operand = self.get_operands(tokens.clone(), 3, 3, &line_num);
+                            self.program.push(Opcode { op_type: OpcodeType::Write, op_operand: Some(Word { as_u64: (operand[0].replace(CONST, "").parse().unwrap()) }), op_regs: vec![operand[1].to_string(), operand[2].to_string()] });
+                        } else {
+                            self.program.push(Opcode { op_type: OpcodeType::Write, op_operand: Some(Word { as_u64: (tokens[0].replace(CONST, "").parse().unwrap()) }), op_regs: Vec::new() });
+                        }
+                    }
+                    
                     AND => {
-                        println!("{:?}", tokens);
                         if tokens.len() > 0 && tokens[0].starts_with('r') && !tokens.is_empty() {
                             let operand = self.get_operands(tokens.clone(), 3, 3, &line_num);
                             self.program.push(Opcode { op_type: OpcodeType::And, op_operand: None, op_regs: vec![operand[0].to_string(), operand[1].to_string(), operand[2].to_string()] });
@@ -1542,6 +1771,12 @@ impl OSVM {
         println!("    tsr: {}", self.tsr);
         println!("    rspc: {}", self.rspc);
         println!("    pc:  {}", self.pc);
+        
+        print!("[Memory]: ");
+        for i in 0..20 {
+            print!("{:02x} ", self.memory[i]);
+        }
+        println!("");
         
         if self.stack.len() > 0 {
             println!("[Stack]:");

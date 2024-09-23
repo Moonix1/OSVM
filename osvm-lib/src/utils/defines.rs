@@ -18,6 +18,8 @@ impl fmt::Debug for Word {
     }
 }
 
+pub const MEMORY_CAPACITY: usize = 640 * 1000;
+
 // Register Names
 pub const R0: &str = "r0";
 pub const R1: &str = "r1";
@@ -77,6 +79,8 @@ pub const SWC: &str = "swc";
 // Universal opcode
 pub const JMP: &str = "jmp";
 pub const CALL: &str = "call";
+pub const READ: &str = "rd";
+pub const WRITE: &str = "wrt";
 pub const AND: &str = "and";
 pub const OR: &str = "or";
 pub const XOR: &str = "xor";

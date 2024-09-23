@@ -1,0 +1,22 @@
+%include "sys_libs.osv"
+%define N #20
+
+_start:
+    push #0
+loop:
+    dupl 0
+    dupl 0
+    wrt #8
+    
+    push #1
+    adds
+    
+    dupl 0
+    push N
+    eqs
+    swc 1
+    pop
+    
+    jzs loop
+    
+    hlt

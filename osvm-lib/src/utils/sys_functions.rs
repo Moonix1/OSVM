@@ -2,7 +2,7 @@ use std::ffi::c_void;
 
 use libc::{exit, free, malloc};
 
-use crate::{utils::defines::*, opcode::Opcode, osvm::OSVM};
+use crate::{opcode::Opcode, osvm::OSVM};
 
 pub struct SystemFunctions {}
 

@@ -1,0 +1,17 @@
+%include "sys_libs.osv"
+%define iter #20
+
+_start:
+    mov r14, #0
+    mov r15, iter
+loop:
+    mov r0, r14
+    mov r1, r14
+    wrt #8, r0, r1
+    
+    inc r14
+    eq r13, r14, r15
+    
+    jz loop, r13
+    
+    hlt
