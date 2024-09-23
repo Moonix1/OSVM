@@ -1,5 +1,6 @@
 #![allow(unused, dead_code)]
 
+use crate::log::Log;
 use crate::preprocessor;
 
 use crate::utils::defines;
@@ -10,6 +11,8 @@ use crate::oasm;
 use crate::opcode;
 use crate::utils::sys_functions::SysFunction;
 use crate::utils::sys_functions::SystemFunctions;
+
+use log::*;
 
 use std::{
     alloc::alloc,
@@ -69,6 +72,11 @@ pub struct OSVM {
 }
 
 impl OSVM {
+    pub fn init_log(self: &Self) {
+        Log::init();
+        info!("Initialized Log!");
+    }
+    
     pub fn init() -> OSVM {
         OSVM {
             // Registers
@@ -841,7 +849,7 @@ impl OSVM {
                         64 => {}
                         
                         _ => {
-                            eprintln!("[Error]: invalid read size: `{}`", opcode.op_operand.unwrap().as_u64);
+                            error!("invalid read size: `{}`", opcode.op_operand.unwrap().as_u64);
                             exit(1);
                         }
                     }
@@ -948,7 +956,7 @@ impl OSVM {
                         64 => {}
                         
                         _ => {
-                            eprintln!("[Error]: invalid read size: `{}`", opcode.op_operand.unwrap().as_u64);
+                            error!("invalid read size: `{}`", opcode.op_operand.unwrap().as_u64);
                             exit(1);
                         }
                     }
@@ -1389,7 +1397,7 @@ impl OSVM {
     fn get_operands<'a>(self: &Self, tokens: Vec<&'a str>, len1: usize, len2: usize, line_num: &usize) -> Vec<&'a str> {
         let mut operands: Vec<&str> = tokens[0].trim().split(", ").collect();
         if operands.len() < len1 || operands.len() > len2 {
-            eprintln!("[Error]: Invalid number of opcode arguments at line: {}", line_num);
+            error!("Invalid number of opcode arguments at line: {}", line_num);
             exit(1);
         }
 
@@ -1443,11 +1451,11 @@ impl OSVM {
                         } else if operands[1].starts_with(GSI) {
                             self.program.push(Opcode { op_type: OpcodeType::Movfs, op_operand: Some(Word { as_u64: (operands[1].replace(GSI, "").parse().unwrap()) }), op_regs: vec![operands[0].to_string()] });
                         } else {
-                            eprintln!("[Error]: Invalid operand `{}` at line: {}", operands[1], line_num);
+                            error!("Invalid operand `{}` at line: {}", operands[1], line_num);
                         }
                     }
                     PHSR => {
-                        eprintln!("[Warning]: `phsr` is deprecated use `mov [reg], $[index]` instead.");
+                        error!("[Warning]: `phsr` is deprecated use `mov [reg], $[index]` instead.");
                         self.program.push(Opcode { op_type: OpcodeType::Phsr, op_operand: None, op_regs: vec![tokens[0].to_string()] });
                     }
                     
@@ -1554,7 +1562,7 @@ impl OSVM {
                                 self.program.push(Opcode { op_type: OpcodeType::Push, op_operand: Some(Word { as_f64: (tokens[0].replace(CONST, "").parse().unwrap()) }), op_regs: Vec::new() });
                             }
                         } else {
-                            eprintln!("[Error]: Invalid operand `{}` at line: {}", tokens[0], line_num);
+                            error!("Invalid operand `{}` at line: {}", tokens[0], line_num);
                         }
                     }
                     
@@ -1725,7 +1733,7 @@ impl OSVM {
                     }
                     
                     _ => {
-                        eprintln!("[Error]: Invalid instruction `{}` at line: {}", inst_name, line_num);
+                        error!("Invalid instruction `{}` at line: {}", inst_name, line_num);
                     }
                 }
             }
@@ -1790,7 +1798,7 @@ impl OSVM {
         while !self.halt {
             let err: Error = self.execute_opcode();
             if err != Error::None {
-                println!("[Error]: {}", err.as_string());
+                error!("{}", err.as_string());
                 exit(1);
             }
         }
@@ -1806,7 +1814,7 @@ impl OSVM {
             println!("[Instruction] => {:?}", self.program[self.pc]);
             
             if err != Error::None {
-                println!("[Error]: {}", err.as_string());
+                error!("{}", err.as_string());
                 exit(1);
             }
         }

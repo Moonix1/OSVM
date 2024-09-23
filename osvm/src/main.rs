@@ -34,6 +34,7 @@ fn main() {
     let program_file = shift(&mut index, &args);
     
     let mut osvm: OSVM = OSVM::init();
+    osvm.init_log();
     osvm.init_default_sysf();
     
     let mut osvm_file: OSVMFile = OSVMFile {}; 
@@ -48,7 +49,6 @@ fn main() {
             let output_path = shift(&mut index, &args);
             let source = get_file_contents(input_path.clone().as_str());
             osvm.translate_source(oasm, input_path.clone(), source.clone());
-            println!("[Converting File] => {} => {}", input_path, output_path);
             osvm_file.save_program_to_file(&mut osvm, &output_path);
             
             if subcommand == "run" {

@@ -1,4 +1,5 @@
 use std::{env, fs::File, io::Read, path::PathBuf, process::exit};
+use log::*;
 
 pub struct Preprocessor {}
 
@@ -59,7 +60,7 @@ impl Preprocessor {
     }
     
     pub fn process_includes(self: &Self, file_path: String, mut source: String) -> String {
-        println!("[Preprocessor] => includes => {}", file_path);
+        info!("[Preprocessor] => includes => {}", file_path);
         let mut index = 0;
         for line in source.clone().lines() {
             let line = line.trim();
@@ -96,7 +97,7 @@ impl Preprocessor {
     }
     
     pub fn process_source(self: &Self, file_path: String, source: String) -> String {
-        println!("[Preprocessor] => all => {}", file_path);
+        info!("[Preprocessor] => all => {}", file_path);
         let mut _index = 0;
         
         let mut macros = Vec::<(&str, &str)>::new();
