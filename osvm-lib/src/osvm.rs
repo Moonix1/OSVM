@@ -62,7 +62,7 @@ pub struct OSVM {
 
     // Stack
     pub stack: Vec<Word>,
-    memory: Vec<u8>,
+    pub memory: Vec<u8>,
     
     // Other
     pub program: Vec<Opcode>,
@@ -117,6 +117,7 @@ impl OSVM {
     
     pub fn init_default_sysf(self: &mut Self) {
         self.sys_functions = vec![
+            SystemFunctions::print_mem,
             SystemFunctions::print_ptr,
             SystemFunctions::print_f64,
             SystemFunctions::print_i64,

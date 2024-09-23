@@ -1,22 +1,26 @@
 %include "sys_libs.osv"
-%define N #20
+%define iter #100
 
 _start:
     push #0
 loop:
     dupl 0
     dupl 0
-    wrt #8
+    wrt #64
     
     push #1
     adds
     
     dupl 0
-    push N
+    push iter
     eqs
     swc 1
     pop
     
     jzs loop
+    
+    push #0
+    push iter
+    call sprintm
     
     hlt

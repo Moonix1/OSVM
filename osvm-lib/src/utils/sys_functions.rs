@@ -81,4 +81,15 @@ impl SystemFunctions {
             }
         }
     }
+    
+    pub fn print_mem(osvm: &mut OSVM, opcode: &Opcode, reg: Vec<String>) {
+        unsafe {
+            let a = osvm.stack.pop().unwrap().as_usize;
+            let b = osvm.stack.pop().unwrap().as_usize;
+            for i in b..a {
+                print!("{:02x} ", osvm.memory[i]);
+            }
+            println!("");
+        }
+    }
 }

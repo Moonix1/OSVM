@@ -4,6 +4,7 @@
 %define print_i64 #4
 %define print_f64 #5
 %define print_ptr #6
+%define print_mem #7
 
 ; System functions as labels
 ; for ease of use I guess
@@ -47,6 +48,11 @@ rprintp:
     
 sprintp:
     mov r7, print_ptr
+    sysf
+    ret   
+
+sprintm:
+    mov r7, print_mem
     sysf
     ret
     
