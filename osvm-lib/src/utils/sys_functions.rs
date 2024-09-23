@@ -1,6 +1,7 @@
 use std::ffi::c_void;
 
 use libc::{exit, free, malloc};
+use log::error;
 
 use crate::{opcode::Opcode, osvm::OSVM};
 
@@ -86,10 +87,13 @@ impl SystemFunctions {
         unsafe {
             let a = osvm.stack.pop().unwrap().as_usize;
             let b = osvm.stack.pop().unwrap().as_usize;
-            for i in b..a {
-                print!("{:02x} ", osvm.memory[i]);
+            if a > osvm.memory.capacity() {
+                error!("Index is larger than the mems capacity");
+            } else {
+                for i in b..a {
+                    print!("{:02x} ", osvm.memory[i]);
+                }
             }
-            println!("");
         }
     }
 }
