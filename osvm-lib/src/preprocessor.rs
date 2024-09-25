@@ -116,7 +116,8 @@ impl Preprocessor {
         let mut source = self.remove_line_by_sstr("%", source.clone());
         source = self.remove_line_by_sstr(";", source);
         for _macro in macros.clone() {
-            source = source.replace(_macro.0, _macro.1);
+            let macro_call: String = _macro.0.to_string() + "!";
+            source = source.replace(macro_call.as_str(), _macro.1);
         }
         
         source

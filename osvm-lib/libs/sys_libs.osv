@@ -12,66 +12,66 @@
 ; Note if you are using registers
 ; the sys function will take in r16
 rprintu:
-    mov r7, print_u64
+    mov r7, print_u64!
     sysf r16
     ret
     
 sprintu:
-    mov r7, print_u64
+    mov r7, print_u64!
     sysf
     ret
     
 rprinti:
-    mov r7, print_i64
+    mov r7, print_i64!
     sysf r16
     ret
     
 sprinti:
-    mov r7, print_i64
+    mov r7, print_i64!
     sysf
     ret
     
 rprintf:
-    mov r7, print_f64
+    mov r7, print_f64!
     sysf r16
     ret
     
 sprintf:
-    mov r7, print_f64
+    mov r7, print_f64!
     sysf
     ret
     
 rprintp:
-    mov r7, print_ptr
+    mov r7, print_ptr!
     sysf r16
     ret
     
 sprintp:
-    mov r7, print_ptr
+    mov r7, print_ptr!
     sysf
     ret   
 
 sprintm:
-    mov r7, print_mem
+    mov r7, print_mem!
     sysf
     ret
     
 rfree:
-    mov r7, free
+    mov r7, free!
     sysf r16
     ret
     
 sfree:
-    mov r7, free
+    mov r7, free!
     sysf
     ret
     
 ralloc:
-    mov r7, alloc
+    mov r7, alloc!
     sysf r16
     ret
     
 salloc:
-    mov r7, alloc
+    mov r7, alloc!
     sysf
     ret

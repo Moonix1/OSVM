@@ -12,7 +12,7 @@ loop:
     adds
     
     dupl 0
-    push iter
+    push iter!
     eqs
     swc 1
     pop
@@ -20,7 +20,7 @@ loop:
     jzs loop
     
     push #0
-    push iter
+    push iter!
     call sprintm
     
     hlt
