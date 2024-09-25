@@ -1,5 +1,5 @@
 %include "sys_libs.osv"
-%define iter #100
+%define iter #255
 
 _start:
     mov r14, #0
