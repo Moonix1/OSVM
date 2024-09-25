@@ -105,7 +105,7 @@ impl Preprocessor {
             let line = line.trim();
             if line.starts_with("%") {
                 if line.replace("%", "").starts_with("define") {
-                    let splitted: Vec<&str> = line.trim().split_whitespace().collect();
+                    let splitted: Vec<&str> = line.trim().splitn(3, |c: char| c.is_whitespace()).collect();
                     macros.push((splitted[1], splitted[2]));
                 }
             }
